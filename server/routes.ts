@@ -111,7 +111,8 @@ export async function registerRoutes(
           headline: props.headline || 'No headline',
           description: props.description || 'No description',
           severity: props.severity || 'Unknown',
-          urgency: props.urgency || 'Unknown'
+          urgency: props.urgency || 'Unknown',
+          expires: props.expires || null
         };
 
         const eventLower = props.event?.toLowerCase() || '';
