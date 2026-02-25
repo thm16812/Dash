@@ -62,13 +62,6 @@ export function MapArea({ center, zoom = 4 }: MapAreaProps) {
         <ZoomControl position="topright" />
         <ScaleControl position="bottomright" imperial={true} metric={false} />
 
-        <Marker position={center}>
-          <Popup className="font-sans text-xs">
-            <div className="font-bold mb-1">Selected Target</div>
-            <div className="font-mono-tech">{center[0].toFixed(4)}, {center[1].toFixed(4)}</div>
-          </Popup>
-        </Marker>
-
         {/* WKU Pin */}
         <Marker position={[36.9850, -86.4550]}>
           <Popup className="font-sans text-xs">

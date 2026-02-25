@@ -41,6 +41,15 @@ export const api = {
       },
     }
   },
+  weather: {
+    alerts: {
+      method: 'GET' as const,
+      path: '/api/weather/alerts' as const,
+      responses: {
+        200: z.any(),
+      }
+    }
+  }
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {
