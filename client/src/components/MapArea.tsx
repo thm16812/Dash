@@ -68,6 +68,14 @@ export function MapArea({ center, zoom = 4 }: MapAreaProps) {
             <div className="font-mono-tech">{center[0].toFixed(4)}, {center[1].toFixed(4)}</div>
           </Popup>
         </Marker>
+
+        {/* WKU Pin */}
+        <Marker position={[36.9850, -86.4550]}>
+          <Popup className="font-sans text-xs">
+            <div className="font-bold mb-1">WKU Campus</div>
+            <div className="text-muted-foreground">Bowling Green, KY</div>
+          </Popup>
+        </Marker>
       </MapContainer>
       
       {/* Decorative GIS Overlay Elements */}
