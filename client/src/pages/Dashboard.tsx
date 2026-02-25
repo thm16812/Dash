@@ -1,46 +1,56 @@
 import { useState } from "react";
 import { TimePanel } from "@/components/TimePanel";
 import { AlertsPanel } from "@/components/AlertsPanel";
-import { LocationsPanel } from "@/components/LocationsPanel";
 import { MapArea } from "@/components/MapArea";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
   // Default center over Bowling Green, KY (WKU)
   const [mapCenter, setMapCenter] = useState<[number, number]>([36.9850, -86.4550]);
   const [mapZoom, setMapZoom] = useState(13);
-
-  const handleSelectLocation = (lat: number, lon: number) => {
-    setMapCenter([lat, lon]);
-    setMapZoom(9);
-  };
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans selection:bg-primary/30">
       
       {/* LEFT SIDEBAR - Dashboard Controls */}
-      <aside className="w-[380px] h-full flex flex-col gap-4 p-4 z-10 bg-background/50 border-r border-border shadow-2xl backdrop-blur-xl">
-        
-        {/* Header/Logo Area */}
-        <header className="flex items-center gap-3 px-2 pb-2">
-          <div className="bg-primary/10 p-2 rounded-lg border border-primary/30">
-            <ShieldCheck className="w-8 h-8 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight leading-none text-foreground uppercase">
-              SA<span className="text-primary">GUI</span>
-            </h1>
-            <p className="text-[10px] font-mono-tech text-muted-foreground uppercase tracking-widest">
-              Situational Awareness
-            </p>
-          </div>
-        </header>
+      <aside 
+        className={`${
+          sidebarCollapsed ? "w-0 p-0 overflow-hidden border-r-0" : "w-[380px] p-4 border-r"
+        } h-full flex flex-col gap-4 z-10 bg-background/50 border-border shadow-2xl backdrop-blur-xl transition-all duration-300 relative`}
+      >
+        {!sidebarCollapsed && (
+          <>
+            {/* Header/Logo Area */}
+            <header className="flex items-center gap-3 px-2 pb-2">
+              <div className="bg-primary/10 p-2 rounded-lg border border-primary/30">
+                <ShieldCheck className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black tracking-tight leading-none text-foreground uppercase">
+                  SA<span className="text-primary">GUI</span>
+                </h1>
+                <p className="text-[10px] font-mono-tech text-muted-foreground uppercase tracking-widest">
+                  Situational Awareness
+                </p>
+              </div>
+            </header>
 
-        <AlertsPanel />
-        
-        <LocationsPanel onSelectLocation={handleSelectLocation} />
-        
+            <AlertsPanel />
+          </>
+        )}
       </aside>
+
+      {/* Sidebar Toggle Button */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute top-4 left-4 z-[500] bg-card/80 backdrop-blur border-border/50"
+        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+      >
+        {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+      </Button>
 
       {/* MAIN CONTENT - Interactive Map */}
       <main className="flex-1 h-full relative">
@@ -60,8 +70,8 @@ export default function Dashboard() {
           ></iframe>
         </div>
 
-        {/* Floating Time Panel - Bottom Left */}
-        <div className="absolute bottom-6 left-6 z-[400] w-64">
+        {/* Floating Time Panel - Bottom Right */}
+        <div className="absolute bottom-6 right-6 z-[400] w-64">
            <TimePanel />
         </div>
       </main>
