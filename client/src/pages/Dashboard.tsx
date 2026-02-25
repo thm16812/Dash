@@ -6,9 +6,9 @@ import { MapArea } from "@/components/MapArea";
 import { ShieldCheck } from "lucide-react";
 
 export default function Dashboard() {
-  // Default center over central USA
-  const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795]);
-  const [mapZoom, setMapZoom] = useState(4);
+  // Default center over Bowling Green, KY (WKU)
+  const [mapCenter, setMapCenter] = useState<[number, number]>([36.9850, -86.4550]);
+  const [mapZoom, setMapZoom] = useState(13);
 
   const handleSelectLocation = (lat: number, lon: number) => {
     setMapCenter([lat, lon]);
@@ -36,8 +36,6 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <TimePanel />
-        
         <AlertsPanel />
         
         <LocationsPanel onSelectLocation={handleSelectLocation} />
@@ -47,6 +45,25 @@ export default function Dashboard() {
       {/* MAIN CONTENT - Interactive Map */}
       <main className="flex-1 h-full relative">
         <MapArea center={mapCenter} zoom={mapZoom} />
+
+        {/* YouTube Embed Tool Window */}
+        <div className="absolute top-4 right-14 z-[400] glass-panel rounded-lg overflow-hidden border border-border/50 shadow-2xl">
+          <iframe 
+            width="320" 
+            height="180" 
+            src="https://www.youtube.com/embed/_PUdkBjyV2A?si=MWgx-TYLPNxdL6w_&autoplay=1&mute=1" 
+            title="YouTube video player" 
+            frameBorder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            referrerPolicy="strict-origin-when-cross-origin" 
+            allowFullScreen
+          ></iframe>
+        </div>
+
+        {/* Floating Time Panel - Bottom Left */}
+        <div className="absolute bottom-6 left-6 z-[400] w-64">
+           <TimePanel />
+        </div>
       </main>
 
     </div>
