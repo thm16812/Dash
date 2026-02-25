@@ -17,6 +17,10 @@ L.Icon.Default.mergeOptions({
 interface MapAreaProps {
   center: [number, number];
   zoom?: number;
+  showDay1?: boolean;
+  showDay2?: boolean;
+  showDay3?: boolean;
+  showTornado?: boolean;
 }
 
 // Component to handle imperative map flyTo when center prop changes
@@ -33,7 +37,7 @@ function MapController({ center, zoom }: { center: [number, number], zoom: numbe
   return null;
 }
 
-export function MapArea({ center, zoom = 4 }: MapAreaProps) {
+export function MapArea({ center, zoom = 4, showDay1, showDay2, showDay3, showTornado }: MapAreaProps) {
   return (
     <div className="relative w-full h-full bg-background z-0">
       <MapContainer 
@@ -58,6 +62,42 @@ export function MapArea({ center, zoom = 4 }: MapAreaProps) {
           opacity={0.65}
           maxZoom={19}
         />
+
+        {/* SPC Day 1 Convective Outlook */}
+        {showDay1 && (
+          <TileLayer
+            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-cat-day1/{z}/{x}/{y}.png"
+            opacity={0.5}
+            maxZoom={19}
+          />
+        )}
+
+        {/* SPC Day 2 Convective Outlook */}
+        {showDay2 && (
+          <TileLayer
+            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-cat-day2/{z}/{x}/{y}.png"
+            opacity={0.5}
+            maxZoom={19}
+          />
+        )}
+
+        {/* SPC Day 3 Convective Outlook */}
+        {showDay3 && (
+          <TileLayer
+            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-cat-day3/{z}/{x}/{y}.png"
+            opacity={0.5}
+            maxZoom={19}
+          />
+        )}
+
+        {/* SPC Tornado Probabilities */}
+        {showTornado && (
+          <TileLayer
+            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-torn-day1/{z}/{x}/{y}.png"
+            opacity={0.5}
+            maxZoom={19}
+          />
+        )}
 
         <ZoomControl position="topright" />
         <ScaleControl position="bottomright" imperial={true} metric={false} />

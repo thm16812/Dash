@@ -24,6 +24,7 @@ interface Alert {
   event: string;
   headline: string;
   severity: string;
+  expires: string | null;
 }
 
 interface AlertsData {
@@ -125,6 +126,11 @@ export function AlertsPanel() {
                 <div className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
                   {alert.headline}
                 </div>
+                {alert.expires && (
+                  <div className="text-[10px] text-destructive font-bold mt-1 uppercase">
+                    Expires: {new Date(alert.expires).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -150,6 +156,11 @@ export function AlertsPanel() {
                 <div className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
                   {alert.headline}
                 </div>
+                {alert.expires && (
+                  <div className="text-[10px] text-[hsl(var(--warning))] font-bold mt-1 uppercase">
+                    Expires: {new Date(alert.expires).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
               </div>
             ))}
           </div>
