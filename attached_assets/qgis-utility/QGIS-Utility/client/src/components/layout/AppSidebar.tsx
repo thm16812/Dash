@@ -62,7 +62,7 @@ export function AppSidebar({ onLocationSelect }: AppSidebarProps) {
             <Crosshair className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-bold text-foreground tracking-tight leading-none">SAGUI</h1>
+            <h1 className="font-bold text-foreground tracking-tight leading-none">WKUDSOC</h1>
             <p className="text-[10px] text-primary font-mono uppercase tracking-widest mt-1">Situational Awareness</p>
           </div>
         </div>
