@@ -97,7 +97,7 @@ export function AlertsPanel() {
             </div>
             <div className="flex items-center gap-2">
               <div className="flex flex-col">
-                <span className="text-[10px] text-muted-foreground uppercase">Wet Bulb</span>
+                <span className="text-[10px] text-muted-foreground uppercase">Wet Bulb Globe Temp</span>
                 <span className="text-sm font-mono-tech font-bold">
                   {observations?.wetBulb !== "N/A" ? `${observations?.wetBulb}°F` : "--"}
                 </span>
