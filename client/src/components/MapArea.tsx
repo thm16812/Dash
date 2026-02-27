@@ -67,8 +67,9 @@ export function MapArea({ center, zoom = 4, showDay1, showDay2, showDay3, showTo
         {/* SPC Day 1 Convective Outlook */}
         {showDay1 && (
           <TileLayer
-            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-cat-day1/{z}/{x}/{y}.png"
-            opacity={0.5}
+            attribution="SPC"
+            url="https://mapservices.weather.noaa.gov/eventdrive/rest/services/SPC/SPC_Outlook/MapServer/tile/1/{z}/{y}/{x}"
+            opacity={0.4}
             maxZoom={19}
           />
         )}
@@ -76,8 +77,9 @@ export function MapArea({ center, zoom = 4, showDay1, showDay2, showDay3, showTo
         {/* SPC Day 2 Convective Outlook */}
         {showDay2 && (
           <TileLayer
-            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-cat-day2/{z}/{x}/{y}.png"
-            opacity={0.5}
+            attribution="SPC"
+            url="https://mapservices.weather.noaa.gov/eventdrive/rest/services/SPC/SPC_Outlook/MapServer/tile/9/{z}/{y}/{x}"
+            opacity={0.4}
             maxZoom={19}
           />
         )}
@@ -85,8 +87,9 @@ export function MapArea({ center, zoom = 4, showDay1, showDay2, showDay3, showTo
         {/* SPC Day 3 Convective Outlook */}
         {showDay3 && (
           <TileLayer
-            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-cat-day3/{z}/{x}/{y}.png"
-            opacity={0.5}
+            attribution="SPC"
+            url="https://mapservices.weather.noaa.gov/eventdrive/rest/services/SPC/SPC_Outlook/MapServer/tile/17/{z}/{y}/{x}"
+            opacity={0.4}
             maxZoom={19}
           />
         )}
@@ -94,8 +97,9 @@ export function MapArea({ center, zoom = 4, showDay1, showDay2, showDay3, showTo
         {/* SPC Tornado Probabilities */}
         {showTornado && (
           <TileLayer
-            url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/spc-torn-day1/{z}/{x}/{y}.png"
-            opacity={0.5}
+            attribution="SPC"
+            url="https://mapservices.weather.noaa.gov/eventdrive/rest/services/SPC/SPC_Outlook/MapServer/tile/2/{z}/{y}/{x}"
+            opacity={0.4}
             maxZoom={19}
           />
         )}
