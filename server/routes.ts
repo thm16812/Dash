@@ -132,54 +132,36 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/weather/afd", async (req, res) => {
-    try {
-      // AFD for LMK (Louisville, KY)
-      const response = await fetch("https://api.weather.gov/products/types/AFD/locations/LMK");
-      if (!response.ok) throw new Error("NWS AFD list fetch failed");
-      const listData = await response.json();
-      const latestProductUrl = listData['@graph']?.[0]?.['@id'];
-      
-      if (!latestProductUrl) throw new Error("No AFD product found");
-      
-      const productResponse = await fetch(latestProductUrl);
-      if (!productResponse.ok) throw new Error("NWS AFD product fetch failed");
-      const productData = await productResponse.json();
-      
-      res.json({ text: productData.productText });
-    } catch (error) {
-      console.error('AFD fetch error:', error);
-      res.status(500).json({ message: "Failed to fetch AFD" });
-    }
-  });
-
   app.get("/api/weather/sounding", async (req, res) => {
     try {
-      // Sounding for OHX (Nashville, TN)
-      // Note: NWS API doesn't provide raw sounding text directly in a simple way like AFD
-      // We'll fetch the latest RAOB/Upper Air product for OHX if available
-      const response = await fetch("https://api.weather.gov/products/types/SOU/locations/OHX");
+      // Fetch the most recent RAOB sounding for OHX from Iowa State Mesonet.
+      // Docs: /cgi-bin/request/raob.py (dl, sts, ets, station)
+      const now = new Date();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const start = new Date(now.getTime() - oneDayMs);
+
+      const toIso = (d: Date) => d.toISOString().slice(0, 19) + "Z";
+
+      const baseUrl =
+        "https://mesonet.agron.iastate.edu/cgi-bin/request/raob.py";
+      const url = new URL(baseUrl);
+      url.searchParams.set("station", "OHX");
+      url.searchParams.set("sts", toIso(start));
+      url.searchParams.set("ets", toIso(now));
+      // dl=1 => force CSV download instead of HTML preview.
+      url.searchParams.set("dl", "1");
+
+      const response = await fetch(url.toString());
       if (!response.ok) {
-        // Fallback to checking for other upper air products if SOU isn't used
-        const altResponse = await fetch("https://api.weather.gov/products/types/UA/locations/OHX");
-        if (!altResponse.ok) throw new Error("NWS Sounding fetch failed");
-        const listData = await altResponse.json();
-        const latestProductUrl = listData['@graph']?.[0]?.['@id'];
-        if (!latestProductUrl) throw new Error("No Sounding product found");
-        const productResponse = await fetch(latestProductUrl);
-        const productData = await productResponse.json();
-        return res.json({ text: productData.productText });
+        throw new Error("Mesonet RAOB fetch failed");
       }
-      
-      const listData = await response.json();
-      const latestProductUrl = listData['@graph']?.[0]?.['@id'];
-      if (!latestProductUrl) throw new Error("No Sounding product found");
-      
-      const productResponse = await fetch(latestProductUrl);
-      const productData = await productResponse.json();
-      res.json({ text: productData.productText });
+
+      const text = await response.text();
+
+      // Return raw CSV so the frontend can display or parse it.
+      res.json({ text });
     } catch (error) {
-      console.error('Sounding fetch error:', error);
+      console.error("Sounding fetch error:", error);
       res.status(500).json({ message: "Failed to fetch sounding" });
     }
   });
