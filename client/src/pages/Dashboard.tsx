@@ -41,11 +41,6 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
-  const { data: afdData } = useQuery<any>({
-    queryKey: ["/api/weather/afd"],
-    refetchInterval: 300000, // 5 mins
-  });
-
   const { data: soundingData } = useQuery<any>({
     queryKey: ["/api/weather/sounding"],
     refetchInterval: 300000,
@@ -114,136 +109,126 @@ export default function Dashboard() {
             </header>
 
             <Tabs defaultValue="layers" className="flex-1 flex flex-col min-h-0">
-              <TabsList className="grid grid-cols-2 bg-muted/20">
+              <TabsList className="grid grid-cols-1 bg-muted/20">
                 <TabsTrigger value="layers" className="text-[10px] font-black uppercase tracking-widest">Map Layers</TabsTrigger>
-                <TabsTrigger value="afd" className="text-[10px] font-black uppercase tracking-widest">NWS AFD</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="layers" className="flex-1 mt-4 space-y-4 overflow-y-auto pr-2 pb-6">
-                {/* Overlay Controls */}
-                <div className="glass-panel rounded-lg p-4 border-l-4 border-l-primary/30">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 flex items-center gap-2">
-                    <Layers className="w-3 h-3" />
-                    Radar & Satellite
-                  </h3>
+              <TabsContent
+                value="layers"
+                className="flex-1 mt-4 overflow-y-auto pr-2 pb-6"
+              >
+                <div className="glass-panel rounded-lg p-4 h-full flex flex-col gap-4 border-l-4 border-l-primary/30">
+                  {/* Overlay Controls */}
+                  <div>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 flex items-center gap-2">
+                      <Layers className="w-3 h-3" />
+                      Radar & Satellite
+                    </h3>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox id="radar" checked={showRadar} onCheckedChange={(c) => setShowRadar(!!c)} />
-                          <Label htmlFor="radar" className="text-[10px] font-bold uppercase cursor-pointer">Live Radar</Label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox id="radar" checked={showRadar} onCheckedChange={(c) => setShowRadar(!!c)} />
+                            <Label htmlFor="radar" className="text-[10px] font-bold uppercase cursor-pointer">Live Radar</Label>
+                          </div>
+                          <span className="text-[10px] font-mono-tech font-bold text-primary">{Math.round(radarOpacity * 100)}%</span>
                         </div>
-                        <span className="text-[10px] font-mono-tech font-bold text-primary">{Math.round(radarOpacity * 100)}%</span>
-                      </div>
-                      <Slider 
-                        value={[radarOpacity]} 
-                        min={0} 
-                        max={1} 
-                        step={0.01} 
-                        onValueChange={([val]) => setRadarOpacity(val)}
-                        disabled={!showRadar}
-                      />
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-border/30">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox id="satellite" checked={showSatellite} onCheckedChange={(c) => setShowSatellite(!!c)} />
-                          <Label htmlFor="satellite" className="text-[10px] font-bold uppercase cursor-pointer">Satellite</Label>
-                        </div>
-                        <span className="text-[10px] font-mono-tech font-bold text-primary">{Math.round(satelliteOpacity * 100)}%</span>
-                      </div>
-
-                      <div className="space-y-3">
-                        <Select value={satelliteBand} onValueChange={setSatelliteBand} disabled={!showSatellite}>
-                          <SelectTrigger className="h-7 text-[9px] font-bold uppercase bg-muted/30">
-                            <SelectValue placeholder="Select Band" />
-                          </SelectTrigger>
-                          <SelectContent className="z-[800]">
-                            <SelectItem value="ch01">Band 01: Visible (Blue)</SelectItem>
-                            <SelectItem value="ch02">Band 02: Visible (Red 0.64µm)</SelectItem>
-                            <SelectItem value="ch03">Band 03: Veggie (NIR)</SelectItem>
-                            <SelectItem value="ch04">Band 04: Cirrus (NIR)</SelectItem>
-                            <SelectItem value="ch05">Band 05: Snow/Ice (NIR)</SelectItem>
-                            <SelectItem value="ch06">Band 06: Particle Size (NIR)</SelectItem>
-                            <SelectItem value="ch07">Band 07: Shortwave IR</SelectItem>
-                            <SelectItem value="ch08">Band 08: Upper-level WV (6.2µm)</SelectItem>
-                            <SelectItem value="ch09">Band 09: Mid-level WV</SelectItem>
-                            <SelectItem value="ch10">Band 10: Lower-level WV</SelectItem>
-                            <SelectItem value="ch11">Band 11: Cloud Top Phase</SelectItem>
-                            <SelectItem value="ch12">Band 12: Ozone</SelectItem>
-                            <SelectItem value="ch13">Band 13: Clean (LWIR)</SelectItem>
-                            <SelectItem value="ch14">Band 14: Long-wave IR (11.2µm)</SelectItem>
-                            <SelectItem value="ch15">Band 15: Dirty (LWIR)</SelectItem>
-                            <SelectItem value="ch16">Band 16: CO2 (LWIR)</SelectItem>
-                          </SelectContent>
-                        </Select>
-
                         <Slider 
-                          value={[satelliteOpacity]} 
+                          value={[radarOpacity]} 
                           min={0} 
                           max={1} 
                           step={0.01} 
-                          onValueChange={([val]) => setSatelliteOpacity(val)}
-                          disabled={!showSatellite}
+                          onValueChange={([val]) => setRadarOpacity(val)}
+                          disabled={!showRadar}
                         />
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t border-border/30">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox id="satellite" checked={showSatellite} onCheckedChange={(c) => setShowSatellite(!!c)} />
+                            <Label htmlFor="satellite" className="text-[10px] font-bold uppercase cursor-pointer">Satellite</Label>
+                          </div>
+                          <span className="text-[10px] font-mono-tech font-bold text-primary">{Math.round(satelliteOpacity * 100)}%</span>
+                        </div>
+
+                        <div className="space-y-3">
+                          <Select value={satelliteBand} onValueChange={setSatelliteBand} disabled={!showSatellite}>
+                            <SelectTrigger className="h-7 text-[9px] font-bold uppercase bg-muted/30">
+                              <SelectValue placeholder="Select Band" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[800]">
+                              <SelectItem value="ch01">Band 01: Visible (Blue)</SelectItem>
+                              <SelectItem value="ch02">Band 02: Visible (Red 0.64µm)</SelectItem>
+                              <SelectItem value="ch03">Band 03: Veggie (NIR)</SelectItem>
+                              <SelectItem value="ch04">Band 04: Cirrus (NIR)</SelectItem>
+                              <SelectItem value="ch05">Band 05: Snow/Ice (NIR)</SelectItem>
+                              <SelectItem value="ch06">Band 06: Particle Size (NIR)</SelectItem>
+                              <SelectItem value="ch07">Band 07: Shortwave IR</SelectItem>
+                              <SelectItem value="ch08">Band 08: Upper-level WV (6.2µm)</SelectItem>
+                              <SelectItem value="ch09">Band 09: Mid-level WV</SelectItem>
+                              <SelectItem value="ch10">Band 10: Lower-level WV</SelectItem>
+                              <SelectItem value="ch11">Band 11: Cloud Top Phase</SelectItem>
+                              <SelectItem value="ch12">Band 12: Ozone</SelectItem>
+                              <SelectItem value="ch13">Band 13: Clean (LWIR)</SelectItem>
+                              <SelectItem value="ch14">Band 14: Long-wave IR (11.2µm)</SelectItem>
+                              <SelectItem value="ch15">Band 15: Dirty (LWIR)</SelectItem>
+                              <SelectItem value="ch16">Band 16: CO2 (LWIR)</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <Slider 
+                            value={[satelliteOpacity]} 
+                            min={0} 
+                            max={1} 
+                            step={0.01} 
+                            onValueChange={([val]) => setSatelliteOpacity(val)}
+                            disabled={!showSatellite}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* SPC Overlays */}
-                <div className="glass-panel rounded-lg p-4 border-l-4 border-l-primary/30">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">SPC Outlooks</h3>
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="day1" checked={showDay1} onCheckedChange={(c) => setShowDay1(!!c)} />
-                      <Label htmlFor="day1" className="text-[10px] font-bold uppercase cursor-pointer">Day 1</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="day2" checked={showDay2} onCheckedChange={(c) => setShowDay2(!!c)} />
-                      <Label htmlFor="day2" className="text-[10px] font-bold uppercase cursor-pointer">Day 2</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="day3" checked={showDay3} onCheckedChange={(c) => setShowDay3(!!c)} />
-                      <Label htmlFor="day3" className="text-[10px] font-bold uppercase cursor-pointer">Day 3</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="tornado" checked={showTornado} onCheckedChange={(c) => setShowTornado(!!c)} />
-                      <Label htmlFor="tornado" className="text-[10px] font-bold uppercase cursor-pointer text-destructive">Tornado</Label>
+                  {/* SPC Overlays */}
+                  <div>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">SPC Outlooks</h3>
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="day1" checked={showDay1} onCheckedChange={(c) => setShowDay1(!!c)} />
+                        <Label htmlFor="day1" className="text-[10px] font-bold uppercase cursor-pointer">Day 1</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="day2" checked={showDay2} onCheckedChange={(c) => setShowDay2(!!c)} />
+                        <Label htmlFor="day2" className="text-[10px] font-bold uppercase cursor-pointer">Day 2</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="day3" checked={showDay3} onCheckedChange={(c) => setShowDay3(!!c)} />
+                        <Label htmlFor="day3" className="text-[10px] font-bold uppercase cursor-pointer">Day 3</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="tornado" checked={showTornado} onCheckedChange={(c) => setShowTornado(!!c)} />
+                        <Label htmlFor="tornado" className="text-[10px] font-bold uppercase cursor-pointer text-destructive">Tornado</Label>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <AlertsPanel />
-              </TabsContent>
-
-              <TabsContent value="afd" className="flex-1 mt-4 overflow-hidden flex flex-col gap-4">
-                <div className="flex-1 overflow-hidden border border-border/30 rounded-lg bg-card/40 flex flex-col">
-                  <div className="p-3 border-b border-border/30 bg-muted/10 flex items-center justify-between">
-                    <h2 className="text-[10px] font-black uppercase tracking-widest text-primary">Area Forecast Discussion (LMK)</h2>
-                  </div>
-                  <ScrollArea className="flex-1">
-                    <div className="p-4">
-                      <pre className="text-[9px] font-mono-tech leading-relaxed whitespace-pre-wrap text-foreground/90 select-text">
-                        {afdData?.text || "Loading Latest Discussion..."}
-                      </pre>
+                  {/* Upper Air / Sounding */}
+                  <div className="flex-1 overflow-hidden border border-border/30 rounded-lg bg-card/40 flex flex-col">
+                    <div className="p-3 border-b border-border/30 bg-muted/10 flex items-center justify-between">
+                      <h2 className="text-[10px] font-black uppercase tracking-widest text-primary">Upper Air / Sounding (OHX)</h2>
                     </div>
-                  </ScrollArea>
-                </div>
-
-                <div className="flex-1 overflow-hidden border border-border/30 rounded-lg bg-card/40 flex flex-col">
-                  <div className="p-3 border-b border-border/30 bg-muted/10 flex items-center justify-between">
-                    <h2 className="text-[10px] font-black uppercase tracking-widest text-primary">Upper Air / Sounding (OHX)</h2>
+                    <ScrollArea className="flex-1">
+                      <div className="p-4">
+                        <pre className="text-[9px] font-mono-tech leading-relaxed whitespace-pre-wrap text-foreground/90 select-text">
+                          {soundingData?.text || "Loading Latest Sounding Data..."}
+                        </pre>
+                      </div>
+                    </ScrollArea>
                   </div>
-                  <ScrollArea className="flex-1">
-                    <div className="p-4">
-                      <pre className="text-[9px] font-mono-tech leading-relaxed whitespace-pre-wrap text-foreground/90 select-text">
-                        {soundingData?.text || "Loading Latest Sounding Data..."}
-                      </pre>
-                    </div>
-                  </ScrollArea>
+
+                  <AlertsPanel />
                 </div>
               </TabsContent>
             </Tabs>
