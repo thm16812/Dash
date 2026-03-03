@@ -162,7 +162,7 @@ export function MapArea({
         {showSatellite && (
           <TileLayer
             attribution='Satellite &copy; <a href="https://mesonet.agron.iastate.edu">IEM</a>'
-            url={`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/goes-${satelliteBand || 'east-ir-10.3um'}/{z}/{x}/{y}.png`}
+            url={`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/goes-east-${satelliteBand || 'conus-ir'}/{z}/{x}/{y}.png`}
             opacity={satelliteOpacity}
             maxZoom={19}
           />
