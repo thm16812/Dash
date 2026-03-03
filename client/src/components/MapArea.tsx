@@ -134,7 +134,8 @@ export function MapArea({
   radarOpacity = 0.65,
   showSatellite = false,
   satelliteOpacity = 0.5,
-  satelliteBand = 'east-ir-10.3um'
+  // Default to GOES-East CONUS Band 14 (long-wave IR)
+  satelliteBand = 'ch14'
 }: MapAreaProps) {
   const day1Outlook = useSpcGeoJson(!!showDay1, "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson");
   const day2Outlook = useSpcGeoJson(!!showDay2, "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson");
@@ -158,11 +159,11 @@ export function MapArea({
           maxZoom={19}
         />
 
-        {/* GOES Satellite Layer (IEM) */}
+        {/* GOES-East CONUS Satellite Layer (IEM) */}
         {showSatellite && (
           <TileLayer
             attribution='Satellite &copy; <a href="https://mesonet.agron.iastate.edu">IEM</a>'
-            url={`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/goes-east-${satelliteBand || 'conus-ir'}/{z}/{x}/{y}.png`}
+            url={`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/goes_east_conus_${satelliteBand || 'ch14'}/{z}/{x}/{y}.png`}
             opacity={satelliteOpacity}
             maxZoom={19}
           />

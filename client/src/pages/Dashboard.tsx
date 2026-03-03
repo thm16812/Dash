@@ -21,13 +21,14 @@ export default function Dashboard() {
   const [mapCenter] = useState<[number, number]>([36.9850, -86.4550]);
   const [mapZoom] = useState(13);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  
+
   // Layers
   const [showRadar, setShowRadar] = useState(true);
   const [radarOpacity, setRadarOpacity] = useState(0.65);
   const [showSatellite, setShowSatellite] = useState(false);
   const [satelliteOpacity, setSatelliteOpacity] = useState(0.5);
-  const [satelliteBand, setSatelliteBand] = useState('conus-ir');
+  // GOES-East CONUS default: Band 14 (long-wave IR)
+  const [satelliteBand, setSatelliteBand] = useState('ch14');
 
   // SPC Layer Toggles
   const [showDay1, setShowDay1] = useState(false);
@@ -56,7 +57,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans selection:bg-primary/30 flex-col md:flex-row">
-      
+
       {/* Top Alerts Bar */}
       <div className="absolute top-0 left-0 right-0 h-10 z-[600] flex items-center justify-center gap-2 md:gap-6 px-2 md:px-4 pointer-events-none">
         <div className="bg-background/80 backdrop-blur-md border border-border/50 rounded-full px-3 md:px-6 py-1 shadow-xl flex items-center gap-3 md:gap-6 pointer-events-auto scale-90 md:scale-100">
@@ -125,7 +126,7 @@ export default function Dashboard() {
                     <Layers className="w-3 h-3" />
                     Radar & Satellite
                   </h3>
-                  
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
@@ -153,20 +154,29 @@ export default function Dashboard() {
                         </div>
                         <span className="text-[10px] font-mono-tech font-bold text-primary">{Math.round(satelliteOpacity * 100)}%</span>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <Select value={satelliteBand} onValueChange={setSatelliteBand} disabled={!showSatellite}>
                           <SelectTrigger className="h-7 text-[9px] font-bold uppercase bg-muted/30">
                             <SelectValue placeholder="Select Band" />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="conus-ir">Band 14: Long-wave IR (11.2µm)</SelectItem>
-                            <SelectItem value="conus-vis">Band 02: Visible (Red 0.64µm)</SelectItem>
-                            <SelectItem value="conus-wv">Band 08: Upper-level WV (6.2µm)</SelectItem>
-                            <SelectItem value="conus-ch01">Band 01: Visible (Blue)</SelectItem>
-                            <SelectItem value="conus-ch03">Band 03: Veggie (NIR)</SelectItem>
-                            <SelectItem value="conus-ch07">Band 07: Shortwave IR</SelectItem>
-                            <SelectItem value="conus-ch13">Band 13: Clean (LWIR)</SelectItem>
+                          <SelectContent className="z-[800]">
+                            <SelectItem value="ch01">Band 01: Visible (Blue)</SelectItem>
+                            <SelectItem value="ch02">Band 02: Visible (Red 0.64µm)</SelectItem>
+                            <SelectItem value="ch03">Band 03: Veggie (NIR)</SelectItem>
+                            <SelectItem value="ch04">Band 04: Cirrus (NIR)</SelectItem>
+                            <SelectItem value="ch05">Band 05: Snow/Ice (NIR)</SelectItem>
+                            <SelectItem value="ch06">Band 06: Particle Size (NIR)</SelectItem>
+                            <SelectItem value="ch07">Band 07: Shortwave IR</SelectItem>
+                            <SelectItem value="ch08">Band 08: Upper-level WV (6.2µm)</SelectItem>
+                            <SelectItem value="ch09">Band 09: Mid-level WV</SelectItem>
+                            <SelectItem value="ch10">Band 10: Lower-level WV</SelectItem>
+                            <SelectItem value="ch11">Band 11: Cloud Top Phase</SelectItem>
+                            <SelectItem value="ch12">Band 12: Ozone</SelectItem>
+                            <SelectItem value="ch13">Band 13: Clean (LWIR)</SelectItem>
+                            <SelectItem value="ch14">Band 14: Long-wave IR (11.2µm)</SelectItem>
+                            <SelectItem value="ch15">Band 15: Dirty (LWIR)</SelectItem>
+                            <SelectItem value="ch16">Band 16: CO2 (LWIR)</SelectItem>
                           </SelectContent>
                         </Select>
 
@@ -286,7 +296,7 @@ export default function Dashboard() {
         <div className="absolute bottom-6 right-6 z-[400] w-64 scale-90 md:scale-100 origin-bottom-right hidden sm:block">
            <TimePanel />
         </div>
-        
+
         {/* Mobile Time Panel Snippet */}
         <div className="absolute bottom-4 left-4 right-4 z-[400] sm:hidden">
           <div className="glass-panel rounded-lg p-3 text-center text-[10px] font-mono-tech font-bold uppercase tracking-widest bg-background/80 border border-border/50">
