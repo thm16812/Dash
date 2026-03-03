@@ -27,7 +27,7 @@ export default function Dashboard() {
   const [radarOpacity, setRadarOpacity] = useState(0.65);
   const [showSatellite, setShowSatellite] = useState(false);
   const [satelliteOpacity, setSatelliteOpacity] = useState(0.5);
-  const [satelliteBand, setSatelliteBand] = useState('east-ir-10.3um');
+  const [satelliteBand, setSatelliteBand] = useState('conus-ir');
 
   // SPC Layer Toggles
   const [showDay1, setShowDay1] = useState(false);
@@ -160,9 +160,13 @@ export default function Dashboard() {
                             <SelectValue placeholder="Select Band" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="east-ir-10.3um">IR Longwave (10.3µm)</SelectItem>
-                            <SelectItem value="east-vis-0.64um">Visible (Red 0.64µm)</SelectItem>
-                            <SelectItem value="east-wv-6.2um">Water Vapor (6.2µm)</SelectItem>
+                            <SelectItem value="conus-ir">Band 14: Long-wave IR (11.2µm)</SelectItem>
+                            <SelectItem value="conus-vis">Band 02: Visible (Red 0.64µm)</SelectItem>
+                            <SelectItem value="conus-wv">Band 08: Upper-level WV (6.2µm)</SelectItem>
+                            <SelectItem value="conus-ch01">Band 01: Visible (Blue)</SelectItem>
+                            <SelectItem value="conus-ch03">Band 03: Veggie (NIR)</SelectItem>
+                            <SelectItem value="conus-ch07">Band 07: Shortwave IR</SelectItem>
+                            <SelectItem value="conus-ch13">Band 13: Clean (LWIR)</SelectItem>
                           </SelectContent>
                         </Select>
 
