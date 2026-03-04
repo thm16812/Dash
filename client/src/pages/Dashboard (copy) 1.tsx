@@ -46,47 +46,10 @@ export default function Dashboard() {
     refetchInterval: 300000,
   });
 
-  // WeatherStem observation used both in Alerts panel and to plot the WKU Chaos station on the map
-  const { data: observation } = useQuery<any>({
-    queryKey: ["/api/weather/observation"],
-    refetchInterval: 60000,
-  });
-
   const { data: stationsData } = useQuery<any[]>({
     queryKey: ["/api/weather/ky-stations"],
     refetchInterval: 300000,
   });
-
-  const wkuChaosStation =
-    observation && observation.temp
-      ? {
-          id: "WKUCHAOS",
-          // WKU Chaos WeatherStem coordinates (from attached assets)
-          lat: 36.98582726072027,
-          lon: -86.44967208166477,
-          temp:
-            observation.temp !== "N/A"
-              ? Number.parseFloat(observation.temp)
-              : "N/A",
-          dewpoint:
-            observation.dewpoint !== "N/A"
-              ? Number.parseFloat(observation.dewpoint)
-              : "N/A",
-          windSpeed:
-            observation.windSpeed !== "N/A"
-              ? Number.parseFloat(observation.windSpeed)
-              : "N/A",
-          windDir:
-            observation.windDir !== "N/A"
-              ? Number.parseFloat(observation.windDir)
-              : "N/A",
-        }
-      : null;
-
-  const stationsForMap = [
-    ...(stationsData ?? []),
-    ...(wkuChaosStation ? [wkuChaosStation] : []),
-  ];
 
   const warningsCount = alertsData?.warnings?.length || 0;
   const watchesCount = alertsData?.watches?.length || 0;
@@ -302,7 +265,7 @@ export default function Dashboard() {
           showSatellite={showSatellite}
           satelliteOpacity={satelliteOpacity}
           satelliteBand={satelliteBand}
-          stations={stationsForMap}
+          stations={stationsData}
         />
 
         {/* YouTube Embed Tool Window */}
