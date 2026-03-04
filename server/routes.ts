@@ -168,8 +168,8 @@ export async function registerRoutes(
 
   app.get("/api/weather/ky-stations", async (req, res) => {
     try {
-      // Return fixed station list with coordinates
-      const stationCoords = [
+      // Mesonet station list with coordinates (same IDs as your Streamlit app)
+      const stationCoords: Array<[string, number, number]> = [
         ["FARM", 36.93, -86.47], ["RSVL", 36.85, -86.92], ["MRHD", 38.22, -83.48],
         ["MRRY", 36.61, -88.34], ["PCWN", 37.28, -84.96], ["HTFD", 37.45, -86.89],
         ["CMBA", 37.12, -85.31], ["CRMT", 37.94, -85.67], ["LXGN", 37.93, -84.53],
@@ -193,26 +193,307 @@ export async function registerRoutes(
         ["SWZR", 36.67, -86.61], ["CCTY", 37.29, -87.16], ["ZION", 36.76, -87.21],
         ["PSPG", 37.01, -86.37], ["BMTN", 36.92, -82.91], ["WDBY", 37.18, -86.65],
         ["DANV", 37.62, -84.82], ["CROP", 38.33, -85.17], ["HARD", 37.76, -86.46],
-        ["GAMA", 36.66,-85.80], ["DABN", 37.18, -84.56], ["DIXO", 37.52, -87.69],
+        ["GAMA", 36.66, -85.80], ["DABN", 37.18, -84.56], ["DIXO", 37.52, -87.69],
         ["WADD", 38.09, -85.14], ["EWPK", 37.04, -86.35], ["RFVC", 37.46, -83.16],
         ["RFSM", 37.43, -83.18], ["CARL", 38.32, -84.04], ["MONT", 36.87, -84.90],
         ["BAND", 37.13, -88.95], ["WOOD", 36.99, -84.97], ["DCRD", 37.87, -83.65],
         ["SPIN", 38.13, -84.50], ["GRBG", 37.21, -85.47], ["PBDY", 37.14, -83.58],
         ["BLOM", 37.96, -85.31], ["LEWP", 37.92, -86.85], ["STAN", 37.85, -83.88],
-        ["BEDD", 38.63, -85.32]
+        ["BEDD", 38.63, -85.32],
       ];
 
-      // Return simulated data for now as fetching 80+ stations takes too long
-      // In production we would fetch from Mesonet API or similar
-      const data = stationCoords.map(([id, lat, lon]) => ({
-        id, lat, lon,
-        temp: Math.floor(Math.random() * (95 - 20) + 20),
-        dewpoint: Math.floor(Math.random() * (75 - 15) + 15),
-        windSpeed: Math.floor(Math.random() * 25),
-        windDir: Math.floor(Math.random() * 360)
-      }));
+      const year = "2025";
 
-      res.json(data);
+      async function fetchMesonetStation(
+        id: string,
+        lat: number,
+        lon: number,
+      ) {
+        try {
+          const manifestRes = await fetch(
+            `https://d266k7wxhw6o23.cloudfront.net/data/${id}/${year}/manifest.json`,
+          );
+          if (!manifestRes.ok) {
+            throw new Error("Mesonet manifest fetch failed");
+          }
+          const manifest = (await manifestRes.json()) as any;
+          const days = Object.keys(manifest);
+          if (!days.length) {
+            throw new Error("Mesonet manifest empty");
+          }
+          days.sort();
+          const latestDay = days[days.length - 1];
+          const key = manifest[latestDay].key;
+
+          const dataRes = await fetch(
+            `https://d266k7wxhw6o23.cloudfront.net/${key}`,
+          );
+          if (!dataRes.ok) {
+            throw new Error("Mesonet data fetch failed");
+          }
+          const data = (await dataRes.json()) as any;
+          const rows: any[] = data.rows || [];
+          const cols: string[] = data.columns || [];
+          if (!rows.length || !cols.length) {
+            throw new Error("Mesonet data missing rows/columns");
+          }
+
+          const colIndex = (name: string) => cols.indexOf(name);
+          const last = rows[rows.length - 1];
+
+          const tairC = last[colIndex("TAIR")];
+          const dwptC = last[colIndex("DWPT")];
+          const wspdMps = last[colIndex("WSPD")];
+
+          const toF = (c: unknown) =>
+            typeof c === "number" && !Number.isNaN(c)
+              ? Math.round((c * 9) / 5 + 32)
+              : ("N/A" as const);
+
+          const toMph = (mps: unknown) =>
+            typeof mps === "number" && !Number.isNaN(mps)
+              ? Math.round(mps * 2.23694)
+              : ("N/A" as const);
+
+          return {
+            id,
+            lat,
+            lon,
+            temp: toF(tairC),
+            dewpoint: toF(dwptC),
+            windSpeed: toMph(wspdMps),
+            windDir: "N/A" as const,
+          };
+        } catch (err) {
+          console.error(`Mesonet station fetch error for ${id}:`, err);
+          return {
+            id,
+            lat,
+            lon,
+            temp: "N/A" as const,
+            dewpoint: "N/A" as const,
+            windSpeed: "N/A" as const,
+            windDir: "N/A" as const,
+          };
+        }
+      }
+
+      type WeatherStemSite = {
+        id: string;
+        name: string;
+        lat: number;
+        lon: number;
+        url: string;
+      };
+
+      const weatherStemSites: WeatherStemSite[] = [
+        {
+          id: "WKU",
+          name: "WKU",
+          lat: 36.9774781561,
+          lon: -85.9166514315,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/warren/wku/latest.json",
+        },
+        {
+          id: "WKUCHAOS",
+          name: "WKU Chaos",
+          lat: 36.98582726072027,
+          lon: -86.44967208166477,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/warren/wkuchaos/latest.json",
+        },
+        {
+          id: "WKUIMFIELDS",
+          name: "WKU IM Fields",
+          lat: 36.9774781561,
+          lon: -85.9166514315,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/warren/wkuimfields/latest.json",
+        },
+        {
+          id: "ETOWN",
+          name: "E'town",
+          lat: 37.69563805082102,
+          lon: -85.88387790284976,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/hardin/wswelizabethtown/latest.json",
+        },
+        {
+          id: "OWENSBORO",
+          name: "Owensboro",
+          lat: 36.9774781561,
+          lon: -85.9166514315,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/daviess/wswowensboro/latest.json",
+        },
+        {
+          id: "GLASGOW",
+          name: "Glasgow",
+          lat: 36.9774781561,
+          lon: -85.916651431,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/barren/wswglasgow/latest.json",
+        },
+        {
+          id: "MAKERS_WAREHOUSE",
+          name: "Maker's Mark Warehouse",
+          lat: 37.6333457845,
+          lon: -85.4075842212,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/marion-ky/makersmarkwarehouse/latest.json",
+        },
+        {
+          id: "MAKERS_ST_MARY",
+          name: "Maker's Mark St Mary",
+          lat: 37.5707524233,
+          lon: -85.3743790708,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/marion-ky/makersmarkstmary/latest.json",
+        },
+        {
+          id: "MAKERS_LEBANON",
+          name: "Maker's Mark Lebanon",
+          lat: 37.5758692691,
+          lon: -85.2736659636,
+          url: "https://cdn/weatherstem.com/dashboard/data/dynamic/model/marion-ky/makersmarklebanon/latest.json",
+        },
+        {
+          id: "MAKERS_INNOVATION",
+          name: "Maker's Mark Innovation Garden",
+          lat: 37.64686,
+          lon: -85.34895,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/marion-ky/makersmark/latest.json",
+        },
+        {
+          id: "JB_BOOKER_NOE",
+          name: "Jim Beam Booker Noe",
+          lat: 37.8127589004,
+          lon: -85.6849316392,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/nelson/jbbookernoe/latest.json",
+        },
+        {
+          id: "JB_BARDSTOWN",
+          name: "Jim Beam Bardstown",
+          lat: 37.8344634433,
+          lon: -85.4711423977,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/nelson/jbbardstown/latest.json",
+        },
+        {
+          id: "JB_CLERMONT",
+          name: "Jim Beam Clermont",
+          lat: 37.9317945798,
+          lon: -85.6520369416,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/bullitt/jbclermont/latest.json",
+        },
+        {
+          id: "JB_OLD_CROW",
+          name: "Jim Beam Old Crow",
+          lat: 38.1463823354,
+          lon: -84.8415031586,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/franklin-ky/jboldcrow/latest.json",
+        },
+        {
+          id: "JB_GRAND_DAD",
+          name: "Jim Beam Grand Dad",
+          lat: 38.215725282,
+          lon: -84.8093261477,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/franklin-ky/jbgranddad/latest.json",
+        },
+        {
+          id: "WOODFORD_COURTHOUSE",
+          name: "Woodford County Courthouse",
+          lat: 38.052717,
+          lon: -84.73067,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/woodford/courthouse/latest.json",
+        },
+        {
+          id: "ADAIR_HS",
+          name: "Adair County High School",
+          lat: 37.107667,
+          lon: -85.32824,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/adair/achs/latest.json",
+        },
+        {
+          id: "CLINTON_HS",
+          name: "Clinton County High School",
+          lat: 36.708211,
+          lon: -85.131276,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/clinton/clintonhs/latest.json",
+        },
+        {
+          id: "NOVELIS_GUTHRIE",
+          name: "Novelis Guthrie",
+          lat: 36.6025431022,
+          lon: -87.7186136559,
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/todd/novelis/latest.json",
+        },
+      ];
+
+      const extractSensorValue = (records: any[], target: string) => {
+        const lower = target.toLowerCase();
+        const found = records.find(
+          (r) =>
+            typeof r.sensor_name === "string" &&
+            r.sensor_name.toLowerCase().includes(lower),
+        );
+        return found?.value ?? "N/A";
+      };
+
+      const toNumericOrNA = (v: unknown) => {
+        if (typeof v === "number" && !Number.isNaN(v)) return v;
+        if (typeof v === "string") {
+          const trimmed = v.trim();
+          if (trimmed && !Number.isNaN(Number(trimmed))) {
+            return Number(trimmed);
+          }
+        }
+        return "N/A" as const;
+      };
+
+      async function fetchWeatherStemStation(site: WeatherStemSite) {
+        try {
+          const resWs = await fetch(site.url);
+          if (!resWs.ok) {
+            throw new Error("WeatherStem fetch failed");
+          }
+          const json = (await resWs.json()) as any;
+          const records: any[] = json.records || [];
+
+          const temp = extractSensorValue(records, "Thermometer");
+          const dew = extractSensorValue(records, "Dewpoint");
+          const wind = extractSensorValue(records, "Anemometer");
+
+          return {
+            id: site.id,
+            lat: site.lat,
+            lon: site.lon,
+            temp: toNumericOrNA(temp),
+            dewpoint: toNumericOrNA(dew),
+            windSpeed: toNumericOrNA(wind),
+            windDir: "N/A" as const,
+          };
+        } catch (err) {
+          console.error(`WeatherStem station fetch error for ${site.id}:`, err);
+          return {
+            id: site.id,
+            lat: site.lat,
+            lon: site.lon,
+            temp: "N/A" as const,
+            dewpoint: "N/A" as const,
+            windSpeed: "N/A" as const,
+            windDir: "N/A" as const,
+          };
+        }
+      }
+
+      const mesonetPromise = Promise.all(
+        stationCoords.map(([id, lat, lon]) =>
+          fetchMesonetStation(id, lat, lon),
+        ),
+      );
+      const weatherStemPromise = Promise.all(
+        weatherStemSites.map((site) => fetchWeatherStemStation(site)),
+      );
+
+      const [mesonetStations, weatherStemStations] = await Promise.all([
+        mesonetPromise,
+        weatherStemPromise,
+      ]);
+
+      res.json([...mesonetStations, ...weatherStemStations]);
     } catch (error) {
       console.error("KY Stations fetch error:", error);
       res.status(500).json({ message: "Failed to fetch KY stations" });
