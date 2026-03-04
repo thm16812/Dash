@@ -146,116 +146,43 @@ function StationPlot({ station }: { station: StationData }) {
     return "#ff0000";
   };
 
-  const cx = 30, cy = 30;
-  const staffLen = 22;
-  const windDirDeg = typeof station.windDir === 'number' ? station.windDir : null;
-  const windSpeedVal = typeof station.windSpeed === 'number' ? station.windSpeed : 0;
-
-  // Staff points in the direction wind comes FROM (met convention)
-  // SVG angle = (windDir - 90) degrees from east, clockwise
-  let staffEndX = cx;
-  let staffEndY = cy - staffLen; // default calm: point north
-
-  if (windDirDeg !== null) {
-    const rad = (windDirDeg - 90) * Math.PI / 180;
-    staffEndX = cx + staffLen * Math.cos(rad);
-    staffEndY = cy + staffLen * Math.sin(rad);
-  }
-
-  // Build wind barb feathers along the staff
-  // Encoding: pennant = 50 mph, long barb = 10 mph, short barb = 5 mph
-  const barbElems: JSX.Element[] = [];
-
-  if (windDirDeg !== null && windSpeedVal >= 3) {
-    const rad = (windDirDeg - 90) * Math.PI / 180;
-    const sDx = Math.cos(rad); // unit vector along staff (outward)
-    const sDy = Math.sin(rad);
-    // Right-perpendicular of staff in SVG coords (rotate 90° CW): (sDy, -sDx)
-    const bLen = 10;
-    const bDx = sDy * bLen;
-    const bDy = -sDx * bLen;
-
-    let spd = windSpeedVal;
-    const pennants = Math.floor(spd / 50); spd -= pennants * 50;
-    const longs = Math.floor(spd / 10); spd -= longs * 10;
-    const shorts = spd >= 5 ? 1 : 0;
-
-    let offset = 0;
-
-    for (let i = 0; i < pennants; i++) {
-      const tx = staffEndX - sDx * offset;
-      const ty = staffEndY - sDy * offset;
-      const bx = tx - sDx * 8;
-      const by = ty - sDy * 8;
-      barbElems.push(
-        <polygon key={`p${i}`}
-          points={`${tx.toFixed(1)},${ty.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${(bx + bDx).toFixed(1)},${(by + bDy).toFixed(1)}`}
-          fill="white" stroke="white" strokeWidth="0.5" />
-      );
-      offset += 10;
-    }
-
-    for (let i = 0; i < longs; i++) {
-      const px = staffEndX - sDx * offset;
-      const py = staffEndY - sDy * offset;
-      barbElems.push(
-        <line key={`l${i}`}
-          x1={px.toFixed(1)} y1={py.toFixed(1)}
-          x2={(px + bDx).toFixed(1)} y2={(py + bDy).toFixed(1)}
-          stroke="white" strokeWidth="1.5" />
-      );
-      offset += 5;
-    }
-
-    for (let i = 0; i < shorts; i++) {
-      const px = staffEndX - sDx * offset;
-      const py = staffEndY - sDy * offset;
-      barbElems.push(
-        <line key={`s${i}`}
-          x1={px.toFixed(1)} y1={py.toFixed(1)}
-          x2={(px + bDx / 2).toFixed(1)} y2={(py + bDy / 2).toFixed(1)}
-          stroke="white" strokeWidth="1.5" />
-      );
-    }
-  }
-
-  const tempColor = getTempColor(station.temp);
-  const tempDisplay = station.temp !== "N/A" ? Math.round(station.temp as number) : "--";
-  const dewDisplay = station.dewpoint !== "N/A" ? Math.round(station.dewpoint as number) : "--";
-  const shadow = "1px 1px 2px #000, -1px -1px 2px #000, 0 0 3px #000";
+  const rotation = typeof station.windDir === 'number' ? station.windDir : 0;
 
   return (
-    <div style={{ width: '60px', height: '60px', position: 'relative', pointerEvents: 'none' }}>
-      <svg width="60" height="60" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        {/* Wind staff */}
-        {windDirDeg !== null && windSpeedVal >= 3 && (
-          <line x1={cx} y1={cy} x2={staffEndX.toFixed(1)} y2={staffEndY.toFixed(1)}
-            stroke="white" strokeWidth="1.5" />
-        )}
-        {barbElems}
-        {/* Station circle (calm = two concentric circles) */}
-        {(windDirDeg === null || windSpeedVal < 3) && (
-          <circle cx={cx} cy={cy} r={7} fill="none" stroke="white" strokeWidth="1" />
-        )}
-        <circle cx={cx} cy={cy} r={4} fill="black" stroke="white" strokeWidth="1.5" />
-      </svg>
-
-      {/* Temperature (upper left) */}
-      <div style={{
-        position: 'absolute', top: 2, left: 2,
-        fontSize: '10px', fontWeight: 'bold', fontFamily: 'monospace',
-        color: tempColor, lineHeight: 1, textShadow: shadow,
-      }}>
-        {tempDisplay}
+    <div className="flex items-center justify-center p-0 m-0 leading-none pointer-events-none" style={{ width: '40px', height: '40px', position: 'relative' }}>
+      {/* Temp (Top Left) */}
+      <div className="absolute top-[2px] left-[2px] text-[9px] font-bold font-mono" style={{ color: getTempColor(station.temp) }}>
+        {station.temp}
+      </div>
+      
+      {/* Dewpoint (Bottom Left) */}
+      <div className="absolute bottom-[2px] left-[2px] text-[9px] font-bold font-mono text-[#00ff00]">
+        {station.dewpoint}
       </div>
 
-      {/* Dewpoint (lower left) */}
-      <div style={{
-        position: 'absolute', bottom: 2, left: 2,
-        fontSize: '10px', fontWeight: 'bold', fontFamily: 'monospace',
-        color: '#00ff99', lineHeight: 1, textShadow: shadow,
-      }}>
-        {dewDisplay}
+      {/* Sky Cover / Center Circle */}
+      <div className="w-3 h-3 rounded-full border border-white bg-black z-10 flex items-center justify-center overflow-hidden">
+        {/* Simplified sky cover: half-filled circle for visual interest */}
+        <div className="w-full h-1/2 bg-white self-start opacity-80" />
+      </div>
+
+      {/* Wind Barb */}
+      <div 
+        className="absolute w-0.5 h-10 bg-white origin-bottom bottom-1/2 left-1/2 -translate-x-1/2"
+        style={{ transform: `translateX(-50%) rotate(${rotation}deg)` }}
+      >
+        {/* Wind Speed Barbs (Flags) */}
+        {typeof station.windSpeed === 'number' && station.windSpeed > 5 && (
+          <div className="absolute top-0 right-0 w-3 h-0.5 bg-white transform -rotate-45 origin-right" />
+        )}
+        {typeof station.windSpeed === 'number' && station.windSpeed > 15 && (
+          <div className="absolute top-1.5 right-0 w-3 h-0.5 bg-white transform -rotate-45 origin-right" />
+        )}
+      </div>
+
+      {/* ID (Right) - Optional, kept small */}
+      <div className="absolute right-0 text-[7px] font-bold uppercase text-white/40 transform translate-x-full pl-1">
+        {station.id}
       </div>
     </div>
   );
@@ -424,9 +351,9 @@ export function MapArea({
             zIndexOffset={2000}
             icon={new DivIcon({
               className: "station-div-icon",
-              html: `<div id="station-${s.id}" style="width: 60px; height: 60px;"></div>`,
-              iconSize: [60, 60],
-              iconAnchor: [30, 30]
+              html: `<div id="station-${s.id}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"></div>`,
+              iconSize: [40, 40],
+              iconAnchor: [20, 20]
             })}
             eventHandlers={{
               add: (e) => {
