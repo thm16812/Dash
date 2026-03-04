@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl, ScaleControl, GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, ZoomControl, ScaleControl, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 
 // Fix Leaflet's default icon path issues in React
@@ -352,10 +352,10 @@ export function MapArea({
       >
         <MapController center={center} zoom={zoom} />
 
-        {/* Dark Matter Base Map - Excellent for GIS/Dashboards */}
+        {/* Dark base map WITHOUT labels (labels rendered on top separately) */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
           maxZoom={19}
         />
 
@@ -378,6 +378,21 @@ export function MapArea({
             maxZoom={19}
           />
         )}
+
+        {/* County boundary lines — always visible for geographic reference */}
+        <TileLayer
+          url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/uscounties/{z}/{x}/{y}.png"
+          opacity={0.6}
+          maxZoom={19}
+          zIndex={300}
+        />
+
+        {/* City/road labels rendered above radar & satellite */}
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+          maxZoom={19}
+          zIndex={400}
+        />
 
         {/* SPC Day 1 Convective Outlook (GeoJSON from SPC) */}
         {showDay1 && day1Outlook && (
@@ -469,14 +484,6 @@ export function MapArea({
 
         <ZoomControl position="topright" />
         <ScaleControl position="bottomright" imperial={true} metric={false} />
-
-        {/* WKU Pin */}
-        <Marker position={[36.9850, -86.4550]}>
-          <Popup className="font-sans text-xs">
-            <div className="font-bold mb-1">WKU Campus</div>
-            <div className="text-muted-foreground">Bowling Green, KY</div>
-          </Popup>
-        </Marker>
 
         {/* KY Stations Weather Plots */}
         {stations && stations.length > 0 && stations.map((s) => (
