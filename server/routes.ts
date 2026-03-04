@@ -507,5 +507,18 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/ky-counties", async (_req: any, res: any) => {
+    try {
+      const url = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1/query?where=STATE%3D%2721%27&outFields=NAME&outSR=4326&f=geojson";
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Census county fetch failed");
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("KY counties fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch KY counties" });
+    }
+  });
+
   return httpServer;
 }

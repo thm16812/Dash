@@ -323,20 +323,40 @@ function StationPlot({ station }: { station: StationData }) {
   );
 }
 
-export function MapArea({ 
-  center, 
-  zoom = 4, 
-  showDay1, 
-  showDay2, 
-  showDay3, 
-  showTornado, 
-  showRadar = true, 
+export function MapArea({
+  center,
+  zoom = 4,
+  showDay1,
+  showDay2,
+  showDay3,
+  showTornado,
+  showRadar = true,
   radarOpacity = 0.65,
   showSatellite = false,
   satelliteOpacity = 0.5,
   satelliteBand = 'ch14',
   stations = []
 }: MapAreaProps) {
+  // Bust tile cache every 2 minutes for radar, 10 minutes for satellite
+  const [radarTs, setRadarTs] = useState(() => Math.floor(Date.now() / 120000));
+  const [satTs, setSatTs]     = useState(() => Math.floor(Date.now() / 600000));
+  // Countdown display (seconds until next refresh)
+  const [radarCountdown, setRadarCountdown] = useState(0);
+  const [satCountdown,   setSatCountdown]   = useState(0);
+
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now() / 1000;
+      setRadarCountdown(Math.ceil(120 - (now % 120)));
+      setSatCountdown(Math.ceil(600 - (now % 600)));
+      setRadarTs(Math.floor(Date.now() / 120000));
+      setSatTs(Math.floor(Date.now() / 600000));
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const kyCounties = useSpcGeoJson(true, "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/kentucky-counties.geojson");
   const day1Outlook = useSpcGeoJson(!!showDay1, "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson");
   const day2Outlook = useSpcGeoJson(!!showDay2, "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson");
   const day3Outlook = useSpcGeoJson(!!showDay3, "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson");
@@ -359,9 +379,10 @@ export function MapArea({
           maxZoom={19}
         />
 
-        {/* GOES-East CONUS Satellite Layer (IEM) */}
+        {/* GOES-East CONUS Satellite Layer (IEM) — refreshes every 10 min */}
         {showSatellite && (
           <TileLayer
+            key={`sat-${satTs}`}
             attribution='Satellite &copy; <a href="https://mesonet.agron.iastate.edu">IEM</a>'
             url={`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/goes_east_conus_${satelliteBand || 'ch14'}/{z}/{x}/{y}.png`}
             opacity={satelliteOpacity}
@@ -369,9 +390,10 @@ export function MapArea({
           />
         )}
 
-        {/* Live Weather Radar Overlay (Iowa State Mesonet NEXRAD) */}
+        {/* Live Weather Radar Overlay (Iowa State Mesonet NEXRAD) — refreshes every 2 min */}
         {showRadar && (
           <TileLayer
+            key={`radar-${radarTs}`}
             attribution='Weather data &copy; <a href="https://mesonet.agron.iastate.edu">IEM</a>'
             url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
             opacity={radarOpacity}
@@ -379,13 +401,18 @@ export function MapArea({
           />
         )}
 
-        {/* County boundary lines — always visible for geographic reference */}
-        <TileLayer
-          url="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/uscounties/{z}/{x}/{y}.png"
-          opacity={0.6}
-          maxZoom={19}
-          zIndex={300}
-        />
+        {/* Kentucky county boundaries — always visible above radar/satellite */}
+        {kyCounties && (
+          <GeoJSON
+            data={kyCounties}
+            style={() => ({
+              color: "#ff3333",
+              weight: 1.5,
+              fill: false,
+              opacity: 1,
+            })}
+          />
+        )}
 
         {/* City/road labels rendered above radar & satellite */}
         <TileLayer
@@ -491,12 +518,30 @@ export function MapArea({
         ))}
       </MapContainer>
 
-      {/* Decorative GIS Overlay Elements */}
+      {/* Status / refresh overlay */}
       <div className="absolute top-4 left-4 pointer-events-none select-none z-[400] flex flex-col gap-1">
         <div className="bg-card/80 backdrop-blur px-3 py-1 rounded border border-border/50 shadow-lg flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary))]"></div>
           <span className="text-xs font-mono-tech font-bold tracking-widest text-primary">LIVE RADAR LINK ACTIVE</span>
         </div>
+        {showRadar && (
+          <div className="bg-card/80 backdrop-blur px-3 py-1 rounded border border-border/50 shadow-lg flex items-center gap-2">
+            <span className="text-[10px] font-mono-tech text-muted-foreground uppercase tracking-widest">
+              RADAR REFRESH IN <span className="text-primary font-bold">
+                {String(Math.floor(radarCountdown / 60)).padStart(2,'0')}:{String(radarCountdown % 60).padStart(2,'0')}
+              </span>
+            </span>
+          </div>
+        )}
+        {showSatellite && (
+          <div className="bg-card/80 backdrop-blur px-3 py-1 rounded border border-border/50 shadow-lg flex items-center gap-2">
+            <span className="text-[10px] font-mono-tech text-muted-foreground uppercase tracking-widest">
+              SAT REFRESH IN <span className="text-primary font-bold">
+                {String(Math.floor(satCountdown / 60)).padStart(2,'0')}:{String(satCountdown % 60).padStart(2,'0')}
+              </span>
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
