@@ -202,7 +202,7 @@ export async function registerRoutes(
         ["BEDD", 38.63, -85.32],
       ];
 
-      const year = "2025";
+      const year = new Date().getFullYear().toString();
 
       async function fetchMesonetStation(
         id: string,
@@ -244,6 +244,7 @@ export async function registerRoutes(
           const tairC = last[colIndex("TAIR")];
           const dwptC = last[colIndex("DWPT")];
           const wspdMps = last[colIndex("WSPD")];
+          const wdirDeg = last[colIndex("WDIR")];
 
           const toF = (c: unknown) =>
             typeof c === "number" && !Number.isNaN(c)
@@ -255,6 +256,11 @@ export async function registerRoutes(
               ? Math.round(mps * 2.23694)
               : ("N/A" as const);
 
+          const toDeg = (d: unknown) =>
+            typeof d === "number" && !Number.isNaN(d)
+              ? Math.round(d)
+              : ("N/A" as const);
+
           return {
             id,
             lat,
@@ -262,7 +268,7 @@ export async function registerRoutes(
             temp: toF(tairC),
             dewpoint: toF(dwptC),
             windSpeed: toMph(wspdMps),
-            windDir: "N/A" as const,
+            windDir: toDeg(wdirDeg),
           };
         } catch (err) {
           console.error(`Mesonet station fetch error for ${id}:`, err);
@@ -290,8 +296,8 @@ export async function registerRoutes(
         {
           id: "WKU",
           name: "WKU",
-          lat: 36.9774781561,
-          lon: -85.9166514315,
+          lat: 36.9685,
+          lon: -86.4708,
           url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/warren/wku/latest.json",
         },
         {
@@ -304,29 +310,29 @@ export async function registerRoutes(
         {
           id: "WKUIMFIELDS",
           name: "WKU IM Fields",
-          lat: 36.9774781561,
-          lon: -85.9166514315,
+          lat: 36.9742,
+          lon: -86.4758,
           url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/warren/wkuimfields/latest.json",
         },
         {
           id: "ETOWN",
           name: "E'town",
-          lat: 37.69563805082102,
-          lon: -85.88387790284976,
+          lat: 37.6959,
+          lon: -85.8789,
           url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/hardin/wswelizabethtown/latest.json",
         },
         {
           id: "OWENSBORO",
           name: "Owensboro",
-          lat: 36.9774781561,
-          lon: -85.9166514315,
+          lat: 37.7719,
+          lon: -87.1112,
           url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/daviess/wswowensboro/latest.json",
         },
         {
           id: "GLASGOW",
           name: "Glasgow",
-          lat: 36.9774781561,
-          lon: -85.916651431,
+          lat: 36.9959,
+          lon: -85.9119,
           url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/barren/wswglasgow/latest.json",
         },
         {
@@ -348,7 +354,7 @@ export async function registerRoutes(
           name: "Maker's Mark Lebanon",
           lat: 37.5758692691,
           lon: -85.2736659636,
-          url: "https://cdn/weatherstem.com/dashboard/data/dynamic/model/marion-ky/makersmarklebanon/latest.json",
+          url: "https://cdn.weatherstem.com/dashboard/data/dynamic/model/marion-ky/makersmarklebanon/latest.json",
         },
         {
           id: "MAKERS_INNOVATION",
@@ -455,6 +461,7 @@ export async function registerRoutes(
           const temp = extractSensorValue(records, "Thermometer");
           const dew = extractSensorValue(records, "Dewpoint");
           const wind = extractSensorValue(records, "Anemometer");
+          const windVane = extractSensorValue(records, "Wind Vane");
 
           return {
             id: site.id,
@@ -463,7 +470,7 @@ export async function registerRoutes(
             temp: toNumericOrNA(temp),
             dewpoint: toNumericOrNA(dew),
             windSpeed: toNumericOrNA(wind),
-            windDir: "N/A" as const,
+            windDir: toNumericOrNA(windVane),
           };
         } catch (err) {
           console.error(`WeatherStem station fetch error for ${site.id}:`, err);
