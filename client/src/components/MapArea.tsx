@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl, ScaleControl, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 
@@ -136,6 +136,44 @@ function MapController({ center, zoom }: { center: [number, number], zoom: numbe
 
 import { DivIcon } from "leaflet";
 
+function StationMarker({ station }: { station: StationData }) {
+  const rootRef = useRef<any>(null);
+
+  // Memoize icon by station.id only — prevents Leaflet from replacing the
+  // DOM element (and wiping React content) on every parent re-render
+  const icon = useMemo(() => new DivIcon({
+    className: "station-div-icon",
+    html: `<div id="station-${station.id}" style="width:60px;height:60px;"></div>`,
+    iconSize: [60, 60] as [number, number],
+    iconAnchor: [30, 30] as [number, number],
+  }), [station.id]);
+
+  const handleAdd = useCallback(() => {
+    const el = document.getElementById(`station-${station.id}`);
+    if (!el) return;
+    import('react-dom/client').then(({ createRoot }) => {
+      if (!rootRef.current) rootRef.current = createRoot(el);
+      rootRef.current.render(<StationPlot station={station} />);
+    });
+  }, [station]);
+
+  // Re-render the plot when live data updates without removing the marker
+  useEffect(() => {
+    if (rootRef.current) {
+      rootRef.current.render(<StationPlot station={station} />);
+    }
+  }, [station]);
+
+  return (
+    <Marker
+      position={[station.lat, station.lon]}
+      zIndexOffset={2000}
+      icon={icon}
+      eventHandlers={{ add: handleAdd }}
+    />
+  );
+}
+
 function StationPlot({ station }: { station: StationData }) {
   const getTempColor = (t: number | "N/A") => {
     if (t === "N/A") return "#ffffff";
@@ -146,10 +184,24 @@ function StationPlot({ station }: { station: StationData }) {
     return "#ff0000";
   };
 
+  // Simplified WBGT approximation (no solar radiation or pressure available)
+  // Wet bulb ≈ average of temp and dewpoint (same as Python's dbdp2wb)
+  // WBGT ≈ 0.7 * Twb + 0.3 * Tdb (globe term omitted without SRAD)
+  const getWbgtColor = (tempF: number | "N/A", dpF: number | "N/A"): string => {
+    if (tempF === "N/A" || dpF === "N/A") return "#ffffff";
+    const wetBulbF = ((tempF as number) + (dpF as number)) / 2;
+    const wbgtF = 0.7 * wetBulbF + 0.3 * (tempF as number);
+    if (wbgtF < 66) return "#008000"; // Green
+    if (wbgtF < 74) return "#FEF200"; // Yellow
+    if (wbgtF < 83) return "#FF0000"; // Red
+    return "#000000";                 // Black
+  };
+
   const cx = 30, cy = 30;
   const staffLen = 22;
   const windDirDeg = typeof station.windDir === 'number' ? station.windDir : null;
   const windSpeedVal = typeof station.windSpeed === 'number' ? station.windSpeed : 0;
+  const barbColor = getWbgtColor(station.temp, station.dewpoint);
 
   // Staff points in the direction wind comes FROM (met convention)
   // SVG angle = (windDir - 90) degrees from east, clockwise
@@ -164,13 +216,12 @@ function StationPlot({ station }: { station: StationData }) {
 
   // Build wind barb feathers along the staff
   // Encoding: pennant = 50 mph, long barb = 10 mph, short barb = 5 mph
-  const barbElems: JSX.Element[] = [];
+  const barbElems: any[] = [];
 
   if (windDirDeg !== null && windSpeedVal >= 3) {
     const rad = (windDirDeg - 90) * Math.PI / 180;
-    const sDx = Math.cos(rad); // unit vector along staff (outward)
+    const sDx = Math.cos(rad);
     const sDy = Math.sin(rad);
-    // Right-perpendicular of staff in SVG coords (rotate 90° CW): (sDy, -sDx)
     const bLen = 10;
     const bDx = sDy * bLen;
     const bDy = -sDx * bLen;
@@ -190,7 +241,7 @@ function StationPlot({ station }: { station: StationData }) {
       barbElems.push(
         <polygon key={`p${i}`}
           points={`${tx.toFixed(1)},${ty.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${(bx + bDx).toFixed(1)},${(by + bDy).toFixed(1)}`}
-          fill="white" stroke="white" strokeWidth="0.5" />
+          fill={barbColor} stroke={barbColor} strokeWidth="0.5" />
       );
       offset += 10;
     }
@@ -202,7 +253,7 @@ function StationPlot({ station }: { station: StationData }) {
         <line key={`l${i}`}
           x1={px.toFixed(1)} y1={py.toFixed(1)}
           x2={(px + bDx).toFixed(1)} y2={(py + bDy).toFixed(1)}
-          stroke="white" strokeWidth="1.5" />
+          stroke={barbColor} strokeWidth="1.5" />
       );
       offset += 5;
     }
@@ -214,7 +265,7 @@ function StationPlot({ station }: { station: StationData }) {
         <line key={`s${i}`}
           x1={px.toFixed(1)} y1={py.toFixed(1)}
           x2={(px + bDx / 2).toFixed(1)} y2={(py + bDy / 2).toFixed(1)}
-          stroke="white" strokeWidth="1.5" />
+          stroke={barbColor} strokeWidth="1.5" />
       );
     }
   }
@@ -223,16 +274,27 @@ function StationPlot({ station }: { station: StationData }) {
   const tempDisplay = station.temp !== "N/A" ? Math.round(station.temp as number) : "--";
   const dewDisplay = station.dewpoint !== "N/A" ? Math.round(station.dewpoint as number) : "--";
   const shadow = "1px 1px 2px #000, -1px -1px 2px #000, 0 0 3px #000";
+  const filterId = `halo-${station.id}`;
 
   return (
     <div style={{ width: '60px', height: '60px', position: 'relative', pointerEvents: 'none' }}>
       <svg width="60" height="60" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        {/* Wind staff */}
-        {windDirDeg !== null && windSpeedVal >= 3 && (
-          <line x1={cx} y1={cy} x2={staffEndX.toFixed(1)} y2={staffEndY.toFixed(1)}
-            stroke="white" strokeWidth="1.5" />
-        )}
-        {barbElems}
+        <defs>
+          {/* White glow so black-category barbs are visible on dark map */}
+          <filter id={filterId} x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="0" stdDeviation="1.2" floodColor="white" floodOpacity="0.9" />
+          </filter>
+        </defs>
+
+        {/* Wind staff + barbs, colored by WBGT category */}
+        <g filter={`url(#${filterId})`}>
+          {windDirDeg !== null && windSpeedVal >= 3 && (
+            <line x1={cx} y1={cy} x2={staffEndX.toFixed(1)} y2={staffEndY.toFixed(1)}
+              stroke={barbColor} strokeWidth="1.5" />
+          )}
+          {barbElems}
+        </g>
+
         {/* Station circle (calm = two concentric circles) */}
         {(windDirDeg === null || windSpeedVal < 3) && (
           <circle cx={cx} cy={cy} r={7} fill="none" stroke="white" strokeWidth="1" />
@@ -418,29 +480,7 @@ export function MapArea({
 
         {/* KY Stations Weather Plots */}
         {stations && stations.length > 0 && stations.map((s) => (
-          <Marker 
-            key={`${s.id}-${s.temp}-${s.windDir}`} 
-            position={[s.lat, s.lon]}
-            zIndexOffset={2000}
-            icon={new DivIcon({
-              className: "station-div-icon",
-              html: `<div id="station-${s.id}" style="width: 60px; height: 60px;"></div>`,
-              iconSize: [60, 60],
-              iconAnchor: [30, 30]
-            })}
-            eventHandlers={{
-              add: (e) => {
-                const el = document.getElementById(`station-${s.id}`);
-                if (el) {
-                  import('react-dom/client').then(({ createRoot }) => {
-                    const root = (el as any)._reactRoot || createRoot(el);
-                    (el as any)._reactRoot = root;
-                    root.render(<StationPlot station={s} />);
-                  });
-                }
-              }
-            }}
-          />
+          <StationMarker key={s.id} station={s} />
         ))}
       </MapContainer>
 
