@@ -48,7 +48,7 @@ export default function Dashboard() {
 
   const { data: stationsData } = useQuery<any[]>({
     queryKey: ["/api/weather/ky-stations"],
-    refetchInterval: 300000,
+    refetchInterval: 120000,
   });
 
   const warningsCount = alertsData?.warnings?.length || 0;
