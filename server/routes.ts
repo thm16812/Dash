@@ -185,13 +185,13 @@ export async function registerRoutes(
         ["RNDH", 37.45, -82.99], ["HCKM", 36.85, -88.34], ["RBSN", 37.42, -83.02],
         ["HHTS", 36.96, -85.64], ["PRYB", 36.83, -83.17], ["CADZ", 36.83, -87.86],
         ["ALBN", 36.71, -85.14], ["HUEY", 38.97, -84.72], ["VEST", 37.41, -82.99],
-        ["GRHM", 37.82, -87.51], ["MQDY", 37.71, -86.50], ["CLSL", 38.28, -84.10],
+        ["GRHM", 37.82, -87.51],
         ["CHTR", 38.58, -83.42], ["FLRK", 36.77, -84.48], ["DORT", 37.28, -82.52],
         ["FCHV", 38.16, -85.38], ["LGRN", 38.46, -85.47], ["HDYV", 37.26, -85.78],
         ["LUSA", 38.10, -82.60], ["PRST", 38.09, -83.76], ["BRND", 37.95, -86.22],
         ["LRTO", 37.63, -85.37], ["HDGV", 37.57, -85.70], ["WTBG", 37.13, -82.84],
         ["SWZR", 36.67, -86.61], ["CCTY", 37.29, -87.16], ["ZION", 36.76, -87.21],
-        ["PSPG", 37.01, -86.37], ["BMTN", 36.92, -82.91], ["WDBY", 37.18, -86.65],
+        ["BMTN", 36.92, -82.91], ["WDBY", 37.18, -86.65],
         ["DANV", 37.62, -84.82], ["CROP", 38.33, -85.17], ["HARD", 37.76, -86.46],
         ["GAMA", 36.66, -85.80], ["DABN", 37.18, -84.56], ["DIXO", 37.52, -87.69],
         ["WADD", 38.09, -85.14], ["EWPK", 37.04, -86.35], ["RFVC", 37.46, -83.16],
@@ -202,7 +202,9 @@ export async function registerRoutes(
         ["BEDD", 38.63, -85.32],
       ];
 
-      const year = new Date().getFullYear().toString();
+      const now = new Date();
+      const year = now.getFullYear().toString();
+      const prevYear = (now.getFullYear() - 1).toString();
 
       async function fetchMesonetStation(
         id: string,
@@ -210,9 +212,15 @@ export async function registerRoutes(
         lon: number,
       ) {
         try {
-          const manifestRes = await fetch(
+          let manifestRes = await fetch(
             `https://d266k7wxhw6o23.cloudfront.net/data/${id}/${year}/manifest.json`,
           );
+          if (!manifestRes.ok) {
+            // Fall back to previous year if current year data not yet available
+            manifestRes = await fetch(
+              `https://d266k7wxhw6o23.cloudfront.net/data/${id}/${prevYear}/manifest.json`,
+            );
+          }
           if (!manifestRes.ok) {
             throw new Error("Mesonet manifest fetch failed");
           }
