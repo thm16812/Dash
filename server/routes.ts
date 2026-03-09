@@ -87,8 +87,8 @@ export async function registerRoutes(
 
   app.get("/api/weather/alerts", async (req, res) => {
     try {
-      // Fetch all active alerts for the entire state of Kentucky
-      const response = await fetch(`https://api.weather.gov/alerts/active?area=KY`);
+      // No area filter = all active alerts nationally per NWS OpenAPI spec
+      const response = await fetch(`https://api.weather.gov/alerts/active?status=actual`);
 
       if (!response.ok) {
         return res.status(500).json({ message: 'Failed to fetch weather alerts' });
@@ -100,10 +100,6 @@ export async function registerRoutes(
       const warnings: any[] = [];
       const watches: any[] = [];
       const advisories: any[] = [];
-
-      // Map: UGC code -> highest-priority alert info for that zone
-      interface UgcAlertInfo { category: string; eventName: string; }
-      const ugcAlert = new Map<string, UgcAlertInfo>();
 
       features.forEach((feature: any) => {
         const props = feature.properties;
@@ -117,7 +113,6 @@ export async function registerRoutes(
           id: props.id,
           event: props.event || 'Unknown',
           headline: props.headline || 'No headline',
-          description: props.description || 'No description',
           severity: props.severity || 'Unknown',
           urgency: props.urgency || 'Unknown',
           expires: props.expires || null
@@ -126,60 +121,9 @@ export async function registerRoutes(
         if (category === 'warning') warnings.push(alert);
         else if (category === 'watch') watches.push(alert);
         else advisories.push(alert);
-
-        // Collect KY UGC codes (county: KYCxxx, forecast zone: KYZxxx)
-        const ugcCodes: string[] = props.geocode?.UGC || [];
-        ugcCodes
-          .filter((c: string) => c.startsWith('KY'))
-          .forEach((c: string) => {
-            // Warning > Watch > Advisory priority; preserve event name for proper coloring
-            const existing = ugcAlert.get(c);
-            const isHigherPriority = !existing ||
-              category === 'warning' ||
-              (category === 'watch' && existing.category === 'advisory');
-            if (isHigherPriority) {
-              ugcAlert.set(c, { category, eventName: props.event || category });
-            }
-          });
       });
 
-      // Fetch zone geometries for affected KY zones in two batch requests
-      // (county zones KYCxxx and forecast zones KYZxxx)
-      const allUgcCodes = Array.from(ugcAlert.keys());
-      const countyCodes = allUgcCodes.filter((c: string) => c[2] === 'C');
-      const forecastCodes = allUgcCodes.filter((c: string) => c[2] === 'Z');
-
-      const fetchZoneBatch = async (type: string, codes: string[]) => {
-        if (!codes.length) return [];
-        try {
-          const url = `https://api.weather.gov/zones/${type}?id=${codes.join(',')}&include_geometry=true`;
-          const r = await fetch(url);
-          if (!r.ok) return [];
-          const json = await r.json();
-          return (json.features || []) as any[];
-        } catch {
-          return [];
-        }
-      };
-
-      const [countyZones, forecastZones] = await Promise.all([
-        fetchZoneBatch('county', countyCodes),
-        fetchZoneBatch('forecast', forecastCodes),
-      ]);
-
-      const mapFeatures = [...countyZones, ...forecastZones]
-        .filter((f: any) => f.geometry)
-        .map((f: any) => {
-          const code = f.properties?.id as string;
-          const alertInfo = ugcAlert.get(code) || { category: 'advisory', eventName: '' };
-          return {
-            type: 'Feature',
-            geometry: f.geometry,
-            properties: { event: code, category: alertInfo.category, eventName: alertInfo.eventName },
-          };
-        });
-
-      res.json({ warnings, watches, advisories, mapFeatures });
+      res.json({ warnings, watches, advisories });
     } catch (error) {
       console.error('Weather alerts error:', error);
       res.status(500).json({ message: 'Internal server error' });
@@ -220,6 +164,78 @@ export async function registerRoutes(
       res.json(data);
     } catch {
       res.json({ type: 'FeatureCollection', features: [] });
+    }
+  });
+
+  // SPC Active Watch Boxes proxy (avoids CORS when served from browser)
+  app.get("/api/weather/watches", async (_req: any, res: any) => {
+    try {
+      const r = await fetch('https://www.spc.noaa.gov/products/watch/ActiveWW.geojson');
+      if (!r.ok) return res.json({ type: 'FeatureCollection', features: [] });
+      const data = await r.json();
+      res.json(data);
+    } catch {
+      res.json({ type: 'FeatureCollection', features: [] });
+    }
+  });
+
+  // NWS active alert polygons — national, no state filter.
+  // NWS API returns GeoJSON; features with geometry != null have direct polygon coordinates
+  // (tornado warnings, severe thunderstorm warnings, flash flood warnings, etc.).
+  // County/zone-based alerts (watches, advisories) are fetched from the NOAA FeatureServer
+  // and merged so the map shows all active WWA nationwide.
+  app.get("/api/weather/nws-wwa", async (_req: any, res: any) => {
+    try {
+      // Source 1: NWS API — features that carry their own polygon geometry
+      const nwsRes = await fetch("https://api.weather.gov/alerts/active?status=actual", {
+        headers: { "User-Agent": "KAIR-WKU/1.0 (dsoc@wku.edu)", "Accept": "application/geo+json" }
+      });
+      const nwsFeatures: any[] = [];
+      if (nwsRes.ok) {
+        const nwsData = await nwsRes.json();
+        for (const f of (nwsData.features || [])) {
+          if (f.geometry) {
+            nwsFeatures.push({
+              type: "Feature",
+              geometry: f.geometry,
+              properties: {
+                eventName: f.properties?.event || "",
+                senderName: f.properties?.senderName || "",
+                expires: f.properties?.expires || null,
+              }
+            });
+          }
+        }
+      }
+
+      // Source 2: NOAA ArcGIS FeatureServer — county/zone polygon representations
+      // prod_type field = full event name (e.g. "Tornado Watch", "Winter Storm Warning")
+      let noaaFeatures: any[] = [];
+      try {
+        const noaaRes = await fetch(
+          "https://mapservices.weather.noaa.gov/eventdriven/rest/services/WWA/watch_warn_adv/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson",
+          { headers: { "User-Agent": "KAIR-WKU/1.0 (dsoc@wku.edu)" } }
+        );
+        if (noaaRes.ok) {
+          const noaaData = await noaaRes.json();
+          noaaFeatures = (noaaData.features || []).map((f: any) => ({
+            type: "Feature",
+            geometry: f.geometry,
+            properties: {
+              eventName: f.properties?.prod_type || f.properties?.phenom || "",
+              senderName: f.properties?.wfo || "",
+              expires: f.properties?.expiration || null,
+            }
+          }));
+        }
+      } catch { /* use only NWS features if NOAA FeatureServer is unavailable */ }
+
+      res.json({
+        type: "FeatureCollection",
+        features: [...nwsFeatures, ...noaaFeatures]
+      });
+    } catch {
+      res.json({ type: "FeatureCollection", features: [] });
     }
   });
 
