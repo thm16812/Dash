@@ -536,7 +536,6 @@ export function MapArea({
   satelliteOpacity = 0.5,
   satelliteBand = 'ch14',
   stations = [],
-  alertFeatures = [],
   showNwsAlerts = true,
   showSpcWatches = false,
   showSurfaceAnalysis = false,
@@ -569,10 +568,12 @@ export function MapArea({
   const day2Outlook = useSpcGeoJson(!!showDay2, "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson");
   const day3Outlook = useSpcGeoJson(!!showDay3, "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson");
   const day1Tornado = useSpcGeoJson(!!showTornado, "https://www.spc.noaa.gov/products/outlook/day1otlk_torn.nolyr.geojson");
-  // SPC active watch boxes (actual polygon boundaries, separate from county-based NWS alerts)
-  const spcWatchData = useSpcGeoJson(!!showSpcWatches, "https://www.spc.noaa.gov/products/watch/ActiveWW.geojson");
+  // SPC active watch boxes — proxied through server to avoid CORS
+  const spcWatchData = useSpcGeoJson(!!showSpcWatches, "/api/weather/watches");
   // SPC active Mesoscale Discussions — proxied through server for CORS reliability
   const mcdData = useSpcGeoJson(!!showMcd, "/api/weather/mcd");
+  // NOAA official WWA polygons from ArcGIS FeatureServer (national coverage, official geometries)
+  const nwsWwaData = useSpcGeoJson(!!showNwsAlerts, "/api/weather/nws-wwa");
 
   return (
     <div className="relative w-full h-full bg-background z-0">
@@ -756,20 +757,23 @@ export function MapArea({
         <ZoomControl position="topright" />
         <ScaleControl position="bottomright" imperial={true} metric={false} />
 
-        {/* NWS Alert County/Zone Polygons — colored by official event-type colors */}
-        {showNwsAlerts && alertFeatures && alertFeatures.length > 0 && (
+        {/* NWS Alert Polygons — national, no state filter.
+            Both sources (NWS API direct polygons + NOAA FeatureServer county shapes)
+            are normalised to { eventName, senderName, expires } by the server. */}
+        {showNwsAlerts && nwsWwaData && (
           <GeoJSON
-            key={`alerts-${alertFeatures.map((f: any) => f.properties?.eventName).join(",")}`}
-            data={{ type: "FeatureCollection", features: alertFeatures } as any}
+            key={`nws-wwa-${(nwsWwaData as any)?.features?.length ?? 0}`}
+            data={nwsWwaData}
             style={(feature: any) => {
-              const eventName = feature?.properties?.eventName || "";
-              const category = feature?.properties?.category || "advisory";
-              const { color, fillOpacity } = getNwsAlertStyle(eventName, category);
+              const eventName = (feature?.properties?.eventName as string) || "";
+              const { color, fillOpacity } = getNwsAlertStyle(eventName, "");
               return { color, weight: 2.5, fillColor: color, fillOpacity };
             }}
             onEachFeature={(feature, layer) => {
-              const name = feature?.properties?.eventName;
-              if (name) layer.bindTooltip(name, { sticky: true, className: "leaflet-tooltip-dark" });
+              const props = feature?.properties || {};
+              const name = props.eventName || "";
+              const who = props.senderName ? ` (${props.senderName})` : "";
+              if (name) layer.bindTooltip(`${name}${who}`, { sticky: true, className: "leaflet-tooltip-dark" });
             }}
           />
         )}
