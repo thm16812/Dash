@@ -654,9 +654,9 @@ export function MapArea({
         />
 
         {/* SPC Watches */}
-        {showSpcWatches && spcWatchData && (
+        {showSpcWatches && spcWatchData && spcWatchData.features && spcWatchData.features.length > 0 && (
           <GeoJSON
-            key={`spc-watches-${JSON.stringify(spcWatchData).length}`}
+            key={`spc-watches-${Date.now()}-${spcWatchData.features.length}`}
             data={spcWatchData}
             style={() => ({
               color: "#ffff00",
@@ -680,9 +680,9 @@ export function MapArea({
         )}
 
         {/* SPC MCDs */}
-        {showMcd && mcdData && (
+        {showMcd && mcdData && mcdData.features && mcdData.features.length > 0 && (
           <GeoJSON
-            key={`spc-mcd-${JSON.stringify(mcdData).length}`}
+            key={`spc-mcd-${Date.now()}-${mcdData.features.length}`}
             data={mcdData}
             style={() => ({
               color: "#9B30FF",
@@ -707,9 +707,9 @@ export function MapArea({
         )}
 
         {/* NOAA official WWA polygons */}
-        {showNwsAlerts && nwsWwaData && (
+        {showNwsAlerts && nwsWwaData && nwsWwaData.features && nwsWwaData.features.length > 0 && (
           <GeoJSON
-            key={`nws-wwa-${JSON.stringify(nwsWwaData).length}`}
+            key={`nws-wwa-${Date.now()}-${nwsWwaData.features.length}`}
             data={nwsWwaData}
             style={(feature) => {
               const props = feature?.properties || {};

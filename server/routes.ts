@@ -159,11 +159,30 @@ export async function registerRoutes(
   app.get("/api/weather/mcd", async (req, res) => {
     try {
       const response = await fetch('https://www.spc.noaa.gov/products/md/ActiveMD.geojson', {
-        headers: { "User-Agent": "KAIR-WKU/1.0 (dsoc@wku.edu)" }
+        headers: { 
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept": "application/json"
+        }
       });
-      if (!response.ok) return res.json({ type: 'FeatureCollection', features: [] });
-      const data = await response.json();
-      res.json(data);
+      
+      if (!response.ok) {
+        console.warn('SPC MCD fetch failed with status:', response.status);
+        return res.json({ type: 'FeatureCollection', features: [] });
+      }
+      
+      const text = await response.text();
+      
+      // Try to parse as JSON
+      try {
+        const data = JSON.parse(text);
+        if (data && data.type === 'FeatureCollection') {
+          return res.json(data);
+        }
+      } catch (parseErr) {
+        console.warn('Failed to parse SPC response as JSON');
+      }
+      
+      res.json({ type: 'FeatureCollection', features: [] });
     } catch (error) {
       console.error('MCD fetch error:', error);
       res.json({ type: 'FeatureCollection', features: [] });
