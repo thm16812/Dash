@@ -313,8 +313,8 @@ function StationPlot({ station }: { station: StationData }) {
     const sDx = Math.cos(rad);
     const sDy = Math.sin(rad);
     const bLen = 10;
-    const bDx = sDy * bLen;
-    const bDy = -sDx * bLen;
+    const bDx = -sDy * bLen;
+    const bDy = sDx * bLen;
 
     let spd = windSpeedVal;
     const pennants = Math.floor(spd / 50); spd -= pennants * 50;
@@ -425,7 +425,6 @@ function LightningLayer({ enabled }: { enabled: boolean }) {
   const [strikes, setStrikes] = useState<LightningStrike[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const enabledRef = useRef(enabled);
-  const goesIntervalRef = useRef<NodeJS.Timeout | null>(null);
   enabledRef.current = enabled;
 
   useEffect(() => {
@@ -445,41 +444,15 @@ function LightningLayer({ enabled }: { enabled: boolean }) {
       });
     };
 
-    // Fetch GOES GLM lightning data from our server endpoint
-    const fetchGoesLightning = async () => {
-      try {
-        const response = await fetch('/api/weather/lightning');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.features && Array.isArray(data.features)) {
-            data.features.forEach((feature: any) => {
-              if (feature.geometry && feature.geometry.type === 'Point') {
-                const [lon, lat] = feature.geometry.coordinates;
-                if (typeof lat === 'number' && typeof lon === 'number') {
-                  addStrike(lat, lon);
-                }
-              }
-            });
-          }
-        }
-      } catch (err) {
-        console.debug('GOES lightning fetch:', err);
-      }
-    };
-
-    // Fetch GOES data every 30 seconds
-    goesIntervalRef.current = setInterval(fetchGoesLightning, 30000);
-    fetchGoesLightning(); // Fetch immediately on enable
-
-    // Also maintain Blitzortung connection for real-time ground-based data
+    // Blitzortung connection for real-time ground-based lightning data
+    const serverIds = [1, 5, 6, 7];
     const tryConnect = (attempt: number = 1) => {
-      const serverNum = ((attempt - 1) % 7) + 1; // cycle ws1–ws7
-      const ws = new WebSocket(`wss://ws${serverNum}.blitzortung.org/`);
+      const serverNum = serverIds[(attempt - 1) % serverIds.length];
+      const ws = new WebSocket(`wss://ws${serverNum}.blitzortung.org:3000/`);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        // Subscribe to continental US bounding box
-        ws.send(JSON.stringify({ west: -130, east: -60, north: 55, south: 20 }));
+        ws.send(JSON.stringify({ time: 0 }));
       };
 
       ws.onmessage = (e) => {
@@ -519,7 +492,6 @@ function LightningLayer({ enabled }: { enabled: boolean }) {
 
     return () => {
       clearInterval(prune);
-      if (goesIntervalRef.current) clearInterval(goesIntervalRef.current);
       wsRef.current?.close();
       wsRef.current = null;
     };
@@ -660,16 +632,17 @@ export function MapArea({
           />
         )}
 
-        {/* NOAA nowcoast Upper Air Analysis (500mb heights, vorticity) */}
+        {/* GFS 500mb Geopotential Heights via Unidata THREDDS ncWMS */}
         {showUpperAir && (
           <WMSTileLayer
-            url="https://nowcoast.noaa.gov/arcgis/services/meteorology/upper_air_analysis/MapServer/WmsServer"
-            layers="0"
+            url="https://thredds.ucar.edu/thredds/wms/grib/NCEP/GFS/Global_0p25deg/Best?ELEVATION=50000&COLORSCALERANGE=4800,6000&NUMCOLORBANDS=20"
+            layers="Geopotential_height_isobaric"
             format="image/png"
             transparent={true}
             version="1.3.0"
             opacity={upperAirOpacity}
-            attribution='Upper Air Analysis &copy; <a href="https://nowcoast.noaa.gov">NOAA nowCOAST</a>'
+            styles="colored_contours/default"
+            attribution='GFS 500mb Heights &copy; <a href="https://thredds.ucar.edu">Unidata THREDDS</a> / NCEP'
           />
         )}
 
