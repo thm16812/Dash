@@ -3,6 +3,8 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { execFile } from "child_process";
+import path from "path";
 
 async function seedDatabase() {
   const existing = await storage.getLocations();
@@ -298,9 +300,24 @@ export async function registerRoutes(
     }
   });
 
-  // Lightning data is handled client-side via Blitzortung WebSocket
-  app.get("/api/weather/lightning", async (_req, res) => {
-    res.json({ features: [] });
+  // GOES-18 GLM lightning flashes via NOAA NODD S3 bucket
+  let glmCache: { ts: number; data: object } | null = null;
+  app.get("/api/weather/lightning", (_req, res) => {
+    const now = Date.now();
+    if (glmCache && now - glmCache.ts < 30_000) {
+      return res.json(glmCache.data);
+    }
+    const script = path.join(__dirname, "glm_lightning.py");
+    execFile("python3", [script], { timeout: 25_000 }, (err, stdout) => {
+      if (err || !stdout) return res.json({ type: "FeatureCollection", features: [] });
+      try {
+        const data = JSON.parse(stdout);
+        glmCache = { ts: now, data };
+        res.json(data);
+      } catch {
+        res.json({ type: "FeatureCollection", features: [] });
+      }
+    });
   });
 
   app.get("/api/weather/ky-stations", async (req, res) => {
