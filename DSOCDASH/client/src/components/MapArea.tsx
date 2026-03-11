@@ -425,6 +425,7 @@ function LightningLayer({ enabled }: { enabled: boolean }) {
   const [strikes, setStrikes] = useState<LightningStrike[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const enabledRef = useRef(enabled);
+  const goesIntervalRef = useRef<NodeJS.Timeout | null>(null);
   enabledRef.current = enabled;
 
   useEffect(() => {
@@ -443,6 +444,28 @@ function LightningLayer({ enabled }: { enabled: boolean }) {
         return [...fresh, { lat, lon, time: now }];
       });
     };
+
+    // Poll GOES-18 GLM satellite lightning every 60 seconds
+    const fetchGoesLightning = async () => {
+      try {
+        const response = await fetch('/api/weather/lightning');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.features && Array.isArray(data.features)) {
+            data.features.forEach((feature: any) => {
+              if (feature.geometry?.type === 'Point') {
+                const [lon, lat] = feature.geometry.coordinates;
+                if (typeof lat === 'number' && typeof lon === 'number') {
+                  addStrike(lat, lon);
+                }
+              }
+            });
+          }
+        }
+      } catch (_) { /* silent */ }
+    };
+    goesIntervalRef.current = setInterval(fetchGoesLightning, 60_000);
+    fetchGoesLightning();
 
     // Blitzortung connection for real-time ground-based lightning data
     const serverIds = [1, 5, 6, 7];
@@ -492,6 +515,7 @@ function LightningLayer({ enabled }: { enabled: boolean }) {
 
     return () => {
       clearInterval(prune);
+      if (goesIntervalRef.current) clearInterval(goesIntervalRef.current);
       wsRef.current?.close();
       wsRef.current = null;
     };
