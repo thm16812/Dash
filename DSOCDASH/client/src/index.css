@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+@import "leaflet/dist/leaflet.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Base Dark Theme (GIS Professional) */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 7.8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 7.8%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Tech/GIS Accents */
+    --primary: 0 71% 40%; /* WKU Red: #B01E24 -> HSL(0, 71%, 40%) */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 5% 20%;
+    --muted-foreground: 240 5% 65%;
+    
+    /* Aviation/Weather Alert Colors */
+    --accent: 35 100% 50%; /* Orange for Advisories */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%; /* Red for Warnings */
+    --destructive-foreground: 0 0% 98%;
+    --warning: 45 100% 50%; /* Yellow for Watches */
+    --success: 120 100% 40%; /* Green for clear/safe */
+    
+    --border: 240 4% 20%;
+    --input: 240 4% 20%;
+    --ring: 199 89% 48%;
+    --radius: 0.3rem;
+  }
+
+  /* Force dark mode by default for this GIS dashboard */
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Custom scrollbar for dense panels */
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .font-mono-tech {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .glass-panel {
+    @apply bg-card/80 backdrop-blur-md border border-border/50 shadow-xl shadow-black/40;
+  }
+
+  .station-div-icon {
+    background: transparent !important;
+    border: none !important;
+  }
+}
+
+/* Customizing Leaflet for dark mode */
+.leaflet-container {
+  background-color: #0f0f11 !important;
+  font-family: var(--font-sans) !important;
+}
+.leaflet-bar a {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+.leaflet-bar a:hover {
+  background-color: hsl(var(--secondary)) !important;
+}
+.leaflet-control-attribution {
+  background-color: hsl(var(--card) / 0.7) !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+.leaflet-control-attribution a {
+  color: hsl(var(--primary)) !important;
+}
