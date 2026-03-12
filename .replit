@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+modules = ["nodejs-20", "python-3.12", "web"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+=======
 modules = ["nodejs-20"]
 [nix]
 channel = "stable-25_05"
@@ -5,6 +13,7 @@ packages = ["unzip"]
 
 [agent]
 expertMode = true
+>>>>>>> c88dcb85ca1247766aa198f69f6c4f32d6c54c82
 
 [workflows]
 runButton = "Project"
@@ -24,8 +33,24 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+<<<<<<< HEAD
+args = "cd DSOCDASH && npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+=======
 args = "npm run dev"
+>>>>>>> c88dcb85ca1247766aa198f69f6c4f32d6c54c82
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+<<<<<<< HEAD
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "cd DSOCDASH && npm run start"]
+build = ["bash", "-c", "cd DSOCDASH && npm run build"]
+=======
+>>>>>>> c88dcb85ca1247766aa198f69f6c4f32d6c54c82
